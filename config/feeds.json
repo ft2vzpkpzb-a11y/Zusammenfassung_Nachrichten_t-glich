@@ -1,0 +1,117 @@
+{
+  "titel": "Tägliche Nachrichten-Zusammenfassung",
+  "untertitel": "Alle Schlagzeilen des Tages auf einen Blick",
+  "zeitzone": "Europe/Vienna",
+  "sichtbare_schlagzeilen": 5,
+  "max_schlagzeilen_pro_quelle": 80,
+  "uebersetzung": {
+    "aktiv": true,
+    "modell": "claude-opus-5",
+    "zielsprache": "Deutsch",
+    "batch_groesse": 25,
+    "cache_datei": "cache/uebersetzungen.json"
+  },
+  "quellen": [
+    {
+      "id": "orf",
+      "name": "ORF.at",
+      "kategorie": "Österreich",
+      "sprache": "de",
+      "farbe": "#c8102e",
+      "webseite": "https://orf.at",
+      "uebersetzen": false,
+      "feeds": [
+        "https://rss.orf.at/news.xml",
+        "https://rss.orf.at/science.xml"
+      ]
+    },
+    {
+      "id": "standard",
+      "name": "DER STANDARD",
+      "kategorie": "Österreich",
+      "sprache": "de",
+      "farbe": "#00639f",
+      "webseite": "https://www.derstandard.at",
+      "uebersetzen": false,
+      "feeds": [
+        "https://www.derstandard.at/rss"
+      ]
+    },
+    {
+      "id": "tagesschau",
+      "name": "tagesschau",
+      "kategorie": "Deutschland",
+      "sprache": "de",
+      "farbe": "#1a4d8f",
+      "webseite": "https://www.tagesschau.de",
+      "uebersetzen": false,
+      "feeds": [
+        "https://www.tagesschau.de/xml/rss2"
+      ]
+    },
+    {
+      "id": "spiegel",
+      "name": "SPIEGEL",
+      "kategorie": "Deutschland",
+      "sprache": "de",
+      "farbe": "#e64415",
+      "webseite": "https://www.spiegel.de",
+      "uebersetzen": false,
+      "feeds": [
+        "https://www.spiegel.de/schlagzeilen/tops/index.rss"
+      ]
+    },
+    {
+      "id": "zeit",
+      "name": "ZEIT ONLINE",
+      "kategorie": "Deutschland",
+      "sprache": "de",
+      "farbe": "#1c1c1c",
+      "webseite": "https://www.zeit.de",
+      "uebersetzen": false,
+      "feeds": [
+        "https://newsfeed.zeit.de/index"
+      ]
+    },
+    {
+      "id": "ft",
+      "name": "Financial Times",
+      "kategorie": "International",
+      "sprache": "en",
+      "farbe": "#0f5499",
+      "webseite": "https://www.ft.com",
+      "uebersetzen": true,
+      "hervorheben": true,
+      "alle_anzeigen": true,
+      "feeds": [
+        "https://www.ft.com/rss/home",
+        "https://www.ft.com/rss/world",
+        "https://www.ft.com/rss/companies"
+      ]
+    },
+    {
+      "id": "bbc",
+      "name": "BBC News",
+      "kategorie": "International",
+      "sprache": "en",
+      "farbe": "#bb1919",
+      "webseite": "https://www.bbc.com/news",
+      "uebersetzen": false,
+      "feeds": [
+        "https://feeds.bbci.co.uk/news/world/rss.xml"
+      ]
+    },
+    {
+      "id": "guardian",
+      "name": "The Guardian",
+      "kategorie": "International",
+      "sprache": "en",
+      "farbe": "#052962",
+      "webseite": "https://www.theguardian.com",
+      "uebersetzen": false,
+      "feeds": [
+        "https://www.theguardian.com/world/rss"
+      ]
+    }
+  ]
+}

@@ -1,0 +1,136 @@
+#!/usr/bin/env python3
+"""Tägliche Nachrichten-Zusammenfassung erzeugen.
+
+Beispiele
+---------
+    python3 generate_briefing.py                     # Briefing für heute bauen
+    python3 generate_briefing.py --demo              # Layout-Vorschau ohne Netz
+    python3 generate_briefing.py --ohne-uebersetzung # FT im Original lassen
+    python3 generate_briefing.py --out briefing.html
+"""
+
+from __future__ import annotations
+
+import argparse
+import sys
+from concurrent.futures import ThreadPoolExecutor
+from datetime import datetime
+from pathlib import Path
+from zoneinfo import ZoneInfo
+
+from briefing.demo import demo_ergebnis
+from briefing.feeds import lade_konfiguration
+from briefing.fetch import hole_quelle
+from briefing.render import rendere_briefing
+from briefing.translate import uebersetze_schlagzeilen
+
+WURZEL = Path(__file__).resolve().parent
+OHNE_LIMIT = 10_000
+
+
+def argumente() -> argparse.Namespace:
+    parser = argparse.ArgumentParser(description="Tägliche Nachrichten-Zusammenfassung")
+    parser.add_argument(
+        "--config", default=str(WURZEL / "config" / "feeds.json"), help="Pfad zur Feed-Konfiguration"
+    )
+    parser.add_argument("--out", default="", help="Zieldatei (Standard: out/briefing-JJJJ-MM-TT.html)")
+    parser.add_argument("--sichtbar", type=int, default=0, help="Sichtbare Schlagzeilen je Quelle")
+    parser.add_argument("--timeout", type=int, default=20, help="Timeout je Feed in Sekunden")
+    parser.add_argument("--ohne-uebersetzung", action="store_true", help="Keine Übersetzung anfordern")
+    parser.add_argument("--demo", action="store_true", help="Beispieldaten statt echter Feeds")
+    parser.add_argument("--quelle", action="append", default=[], help="Nur diese Quellen-ID(s) verwenden")
+    return parser.parse_args()
+
+
+def main() -> int:
+    args = argumente()
+    konfiguration = lade_konfiguration(args.config)
+    if args.sichtbar:
+        konfiguration.sichtbare_schlagzeilen = args.sichtbar
+    if args.quelle:
+        gewuenscht = set(args.quelle)
+        konfiguration.quellen = [q for q in konfiguration.quellen if q.id in gewuenscht]
+        if not konfiguration.quellen:
+            print(f"Keine Quelle passt zu {sorted(gewuenscht)}", file=sys.stderr)
+            return 2
+
+    jetzt = datetime.now(ZoneInfo(konfiguration.zeitzone))
+
+    # --- Feeds holen (parallel: ein langsamer Feed bremst die anderen nicht) ---
+    ergebnisse: dict = {}
+    if args.demo:
+        for quelle in konfiguration.quellen:
+            ergebnisse[quelle.id] = demo_ergebnis(quelle, jetzt)
+    else:
+        def abrufen(quelle):
+            grenze = (
+                OHNE_LIMIT if quelle.alle_anzeigen else konfiguration.max_schlagzeilen_pro_quelle
+            )
+            return quelle.id, hole_quelle(quelle, max_schlagzeilen=grenze, timeout=args.timeout)
+
+        with ThreadPoolExecutor(max_workers=min(8, len(konfiguration.quellen))) as pool:
+            for quelle_id, ergebnis in pool.map(abrufen, konfiguration.quellen):
+                ergebnisse[quelle_id] = ergebnis
+
+    # --- Übersetzen (Standard: Financial Times) ---
+    hinweis = ""
+    if args.demo:
+        hinweis = "Beispieldaten — die „Übersetzungen“ sind Platzhalter."
+    elif konfiguration.uebersetzung.aktiv and not args.ohne_uebersetzung:
+        zu_uebersetzen = []
+        for quelle in konfiguration.quellen:
+            quellenergebnis = ergebnisse.get(quelle.id)
+            if quelle.uebersetzen and quellenergebnis:
+                zu_uebersetzen.extend(quellenergebnis.schlagzeilen)
+
+        if zu_uebersetzen:
+            uebersetzung = uebersetze_schlagzeilen(
+                zu_uebersetzen,
+                modell=konfiguration.uebersetzung.modell,
+                zielsprache=konfiguration.uebersetzung.zielsprache,
+                batch_groesse=konfiguration.uebersetzung.batch_groesse,
+                cache_datei=WURZEL / konfiguration.uebersetzung.cache_datei,
+            )
+            hinweis = (
+                f"Übersetzung: {uebersetzung.anzahl_uebersetzt} neu via "
+                f"{konfiguration.uebersetzung.modell}, "
+                f"{uebersetzung.anzahl_aus_cache} aus dem Cache."
+            )
+            if uebersetzung.fehler:
+                hinweis += f" {uebersetzung.fehler}"
+                print(f"Warnung: {uebersetzung.fehler}", file=sys.stderr)
+    elif args.ohne_uebersetzung:
+        hinweis = "Übersetzung per --ohne-uebersetzung deaktiviert."
+
+    # --- Rendern ---
+    html = rendere_briefing(konfiguration, ergebnisse, jetzt, hinweis, demo=args.demo)
+    ziel = Path(args.out) if args.out else WURZEL / "out" / f"briefing-{jetzt:%Y-%m-%d}.html"
+    ziel.parent.mkdir(parents=True, exist_ok=True)
+    ziel.write_text(html, encoding="utf-8")
+
+    # --- Kurzbericht fürs Log (macht stille Ausfälle im Cron sichtbar) ---
+    gesamt = 0
+    probleme: list[str] = []
+    for quelle in konfiguration.quellen:
+        ergebnis = ergebnisse.get(quelle.id)
+        if ergebnis is None:
+            continue
+        anzahl = len(ergebnis.schlagzeilen)
+        gesamt += anzahl
+        markierung = "ok  " if ergebnis.ok and anzahl else "FEHL"
+        print(f"[{markierung}] {quelle.name:<18} {anzahl:>4} Schlagzeilen")
+        if not (ergebnis.ok and anzahl):
+            probleme.extend(f"    {quelle.name}: {m}" for m in ergebnis.fehlermeldungen)
+
+    for zeile in probleme:
+        print(zeile, file=sys.stderr)
+    print(f"\n{gesamt} Schlagzeilen → {ziel}")
+
+    if gesamt == 0:
+        print("Keine einzige Schlagzeile abgerufen.", file=sys.stderr)
+        return 1
+    return 0
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())
