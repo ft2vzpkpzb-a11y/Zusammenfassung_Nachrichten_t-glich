@@ -69,11 +69,11 @@ def demo_ergebnis(quelle, jetzt: datetime, anzahl: int = 0) -> QuellenErgebnis:
         schlagzeilen.append(schlagzeile)
 
     ergebnis = QuellenErgebnis(quelle_id=quelle.id, schlagzeilen=schlagzeilen)
-    for nummer, url in enumerate(quelle.feeds):
+    for adresse in quelle.feeds:
         anteil = len(schlagzeilen) // max(len(quelle.feeds), 1)
         ergebnis.status.append(
             FeedStatus(
-                url=url,
+                url=getattr(adresse, "url", str(adresse)),
                 quelle_id=quelle.id,
                 ok=True,
                 anzahl=anteil,

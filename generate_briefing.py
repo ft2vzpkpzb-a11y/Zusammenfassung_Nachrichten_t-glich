@@ -20,7 +20,7 @@ from zoneinfo import ZoneInfo
 
 from briefing import pwa
 from briefing.demo import demo_ergebnis
-from briefing.feeds import lade_konfiguration
+from briefing.feeds import Quelle, lade_konfiguration
 from briefing.fetch import hole_quelle
 from briefing.render import rendere_briefing
 from briefing.translate import uebersetze_schlagzeilen
@@ -48,7 +48,79 @@ def argumente() -> argparse.Namespace:
     parser.add_argument(
         "--archiv-tage", type=int, default=30, help="Wie viele frühere Ausgaben behalten (Standard 30)"
     )
+    parser.add_argument(
+        "--ohne-rubrikfilter",
+        action="store_true",
+        help="Alle Ressorts übernehmen statt nur Politik und Wirtschaft",
+    )
+    parser.add_argument(
+        "--pruefe",
+        action="store_true",
+        help="Nur prüfen: jeden Feed abrufen und melden, was ankommt (kein Briefing bauen)",
+    )
     return parser.parse_args()
+
+
+def pruefe_feeds(konfiguration, timeout: int) -> int:
+    """Jeden Feed einzeln abrufen und zeigen, was ankommt.
+
+    Gedacht zum Nachschärfen der Konfiguration: welche Adressen antworten,
+    welches Format sie liefern, welche Ressorts darin vorkommen und wie viel
+    davon der Rubrikfilter übrig lässt.
+    """
+    probleme = 0
+    for quelle in konfiguration.quellen:
+        filter_an = konfiguration.rubrikfilter.aktiv and quelle.rubriken_filtern
+        print(f"\n{quelle.name}  ({'Rubrikfilter an' if filter_an else 'ohne Rubrikfilter'})")
+        if quelle.hinweis:
+            print(f"  Hinweis: {quelle.hinweis}")
+
+        for adresse in quelle.feeds:
+            einzeln = Quelle(
+                id=quelle.id,
+                name=quelle.name,
+                feeds=[adresse],
+                rubriken_filtern=quelle.rubriken_filtern,
+            )
+            ergebnis = hole_quelle(
+                einzeln,
+                max_schlagzeilen=OHNE_LIMIT,
+                timeout=timeout,
+                rubrikfilter=konfiguration.rubrikfilter,
+            )
+            status = ergebnis.status[0]
+            marke = "ok  " if status.ok else "FEHL"
+            if not status.ok:
+                probleme += 1
+                print(f"  [{marke}] {adresse.url}")
+                print(f"         {status.fehler}")
+                if adresse.alternativen:
+                    print(f"         auch ohne Erfolg: {', '.join(adresse.alternativen)}")
+                continue
+
+            print(f"  [{marke}] {status.url}")
+            if status.url != adresse.url:
+                print(f"         (Ausweichadresse — {adresse.url} ging nicht)")
+
+            gesamt = status.anzahl + status.gefiltert
+            print(
+                f"         {status.format} · {gesamt} Einträge · "
+                f"{status.anzahl} nach Filter · {status.dauer_ms} ms"
+            )
+            if status.rubriken:
+                print(f"         Ressorts im Feed: {', '.join(status.rubriken)}")
+            elif filter_an:
+                print("         Ressorts im Feed: keine Angabe — es zählt der Link-Pfad")
+            if ergebnis.schlagzeilen:
+                print(f"         Beispiel: „{ergebnis.schlagzeilen[0].titel[:70]}“")
+            elif filter_an:
+                probleme += 1
+                print("         Nichts aus Politik/Wirtschaft — Erlaubt-Liste prüfen")
+
+    print(
+        "\nAlles in Ordnung." if not probleme else f"\n{probleme} Feed(s) mit Auffälligkeiten."
+    )
+    return 0 if not probleme else 1
 
 
 def baue_website(
@@ -93,6 +165,12 @@ def main() -> int:
             print(f"Keine Quelle passt zu {sorted(gewuenscht)}", file=sys.stderr)
             return 2
 
+    if args.ohne_rubrikfilter:
+        konfiguration.rubrikfilter.aktiv = False
+
+    if args.pruefe:
+        return pruefe_feeds(konfiguration, args.timeout)
+
     jetzt = datetime.now(ZoneInfo(konfiguration.zeitzone))
 
     # --- Feeds holen (parallel: ein langsamer Feed bremst die anderen nicht) ---
@@ -105,7 +183,12 @@ def main() -> int:
             grenze = (
                 OHNE_LIMIT if quelle.alle_anzeigen else konfiguration.max_schlagzeilen_pro_quelle
             )
-            return quelle.id, hole_quelle(quelle, max_schlagzeilen=grenze, timeout=args.timeout)
+            return quelle.id, hole_quelle(
+                quelle,
+                max_schlagzeilen=grenze,
+                timeout=args.timeout,
+                rubrikfilter=konfiguration.rubrikfilter,
+            )
 
         with ThreadPoolExecutor(max_workers=min(8, len(konfiguration.quellen))) as pool:
             for quelle_id, ergebnis in pool.map(abrufen, konfiguration.quellen):
@@ -167,7 +250,9 @@ def main() -> int:
         anzahl = len(ergebnis.schlagzeilen)
         gesamt += anzahl
         markierung = "ok  " if ergebnis.ok and anzahl else "FEHL"
-        print(f"[{markierung}] {quelle.name:<18} {anzahl:>4} Schlagzeilen")
+        aussortiert = sum(s.gefiltert for s in ergebnis.status)
+        zusatz = f"  ({aussortiert} andere Ressorts aussortiert)" if aussortiert else ""
+        print(f"[{markierung}] {quelle.name:<18} {anzahl:>4} Schlagzeilen{zusatz}")
         if not (ergebnis.ok and anzahl):
             probleme.extend(f"    {quelle.name}: {m}" for m in ergebnis.fehlermeldungen)
 

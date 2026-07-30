@@ -110,7 +110,9 @@ class TestCacheUndFehlerpfade(unittest.TestCase):
                     os.environ[schluessel] = wert
 
         self.assertFalse(ergebnis.ok)
-        self.assertIn("ANTHROPIC_API_KEY", ergebnis.fehler)
+        # Ohne installiertes SDK meldet die Funktion das fehlende Paket, sonst
+        # den fehlenden Schlüssel — beides ist ein sauberer Rückfall.
+        self.assertRegex(ergebnis.fehler, r"ANTHROPIC_API_KEY|anthropic' nicht installiert")
         self.assertEqual(schlagzeile.uebersetzung, "")  # Original bleibt nutzbar
 
     def test_leere_liste_ist_kein_fehler(self):

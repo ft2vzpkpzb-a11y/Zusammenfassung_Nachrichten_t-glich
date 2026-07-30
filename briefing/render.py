@@ -107,7 +107,14 @@ a { color: inherit; }
   font-family: var(--serif); font-weight: 600; font-size: clamp(2rem, 5vw, 3.1rem);
   line-height: 1.08; letter-spacing: -.02em; margin: 0 0 10px;
 }
-.kopf__datum { font-size: 1.02rem; color: var(--text-gedaempft); margin: 0 0 22px; }
+.kopf__datum { font-size: 1.02rem; color: var(--text-gedaempft); margin: 0 0 10px; }
+.kopf__filter {
+  display: inline-block; margin: 0 0 20px; padding: 4px 12px;
+  font-family: var(--mono); font-size: .72rem; letter-spacing: .06em;
+  text-transform: uppercase; color: var(--akzent);
+  background: color-mix(in srgb, var(--akzent) 10%, transparent);
+  border-radius: 999px;
+}
 .kennzahlen { display: flex; flex-wrap: wrap; gap: 10px; }
 .kennzahl {
   background: var(--bg-karte); border: 1px solid var(--rand); border-radius: 999px;
@@ -453,6 +460,8 @@ def _karte(ergebnis, quelle, jetzt: datetime, sichtbar: int) -> str:
             '<p class="hinweis">Alle Schlagzeilen auf Deutsch übersetzt — '
             "das englische Original steht jeweils darunter.</p>"
         )
+    elif quelle.hinweis:
+        teile.append(f'<p class="hinweis">{escape(quelle.hinweis)}</p>')
 
     if not ergebnis.ok or not schlagzeilen:
         meldungen = ergebnis.fehlermeldungen or ["Keine Schlagzeilen empfangen."]
@@ -494,6 +503,7 @@ def _statusabschnitt(ergebnisse: dict, quellen: list, uebersetzung_hinweis: str)
                 if status.ok
                 else '<span class="pille pille--fehler">Fehler</span>'
             )
+            gefiltert = f"−{status.gefiltert}" if status.gefiltert else "—"
             zeilen.append(
                 "<tr>"
                 f"<td>{escape(quelle.name)}</td>"
@@ -501,6 +511,7 @@ def _statusabschnitt(ergebnisse: dict, quellen: list, uebersetzung_hinweis: str)
                 f"<td>{pille}</td>"
                 f"<td>{escape(status.format)}</td>"
                 f"<td>{status.anzahl}</td>"
+                f"<td>{gefiltert}</td>"
                 f"<td>{status.dauer_ms} ms</td>"
                 f"<td>{escape(status.fehler)}</td>"
                 "</tr>"
@@ -513,7 +524,7 @@ def _statusabschnitt(ergebnisse: dict, quellen: list, uebersetzung_hinweis: str)
         '<h2 class="rubrik__titel">Feed-Status</h2>'
         '<table class="status__tabelle">'
         "<thead><tr><th>Quelle</th><th>Feed</th><th>Status</th><th>Format</th>"
-        "<th>Einträge</th><th>Dauer</th><th>Hinweis</th></tr></thead>"
+        "<th>Einträge</th><th>Gefiltert</th><th>Dauer</th><th>Hinweis</th></tr></thead>"
         f"<tbody>{''.join(zeilen)}</tbody></table>{hinweis}</section>"
     )
 
@@ -597,6 +608,13 @@ def rendere_briefing(
         else ""
     )
 
+    # Sichtbar machen, dass gefiltert wird — sonst wirken fehlende Themen wie ein Fehler.
+    ohne_filter = [q.name for q in quellen if not q.rubriken_filtern and q.id in ergebnisse]
+    filterhinweis = ""
+    if getattr(konfiguration.rubrikfilter, "aktiv", False):
+        ausnahme = f" · {escape(', '.join(ohne_filter))} vollständig" if ohne_filter else ""
+        filterhinweis = f'<p class="kopf__filter">Nur Politik &amp; Wirtschaft{ausnahme}</p>'
+
     titel = f"{konfiguration.titel} — {jetzt:%d.%m.%Y}"
     app_kopf = pwa.kopfzeilen() if web else ""
     app_skript = pwa.registrierung() if web else ""
@@ -617,6 +635,7 @@ def rendere_briefing(
   <h1 class="kopf__titel">{escape(konfiguration.titel)}</h1>
   <p class="kopf__datum">{escape(_datum_lang(jetzt))} · Stand {jetzt:%H:%M} Uhr
      {escape(f"({konfiguration.zeitzone})")}</p>
+  {filterhinweis}
   <div class="kennzahlen">
     <span class="kennzahl"><span class="kennzahl__wert">{gesamt}</span><span class="kennzahl__label">Schlagzeilen</span></span>
     <span class="kennzahl"><span class="kennzahl__wert">{quellen_ok}/{len(quellen)}</span><span class="kennzahl__label">Quellen abgerufen</span></span>
