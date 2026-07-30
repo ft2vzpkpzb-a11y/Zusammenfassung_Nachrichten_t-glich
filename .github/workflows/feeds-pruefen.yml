@@ -1,0 +1,41 @@
+name: Feeds prüfen
+
+# Ruft jeden konfigurierten Feed wirklich ab und meldet, was ankommt.
+# Läuft auf GitHub-Runnern, die — anders als manche Arbeitsumgebung — freien
+# Netzzugang haben. Baut kein Briefing und schreibt nichts ins Repo.
+
+on:
+  workflow_dispatch:
+  push:
+    paths:
+      - "config/feeds.json"
+      - "briefing/fetch.py"
+      - "briefing/rubriken.py"
+      - ".github/workflows/feeds-pruefen.yml"
+  schedule:
+    # Wöchentlich montags: meldet stillgelegte oder umgezogene Feeds,
+    # bevor sie im Briefing als leere Karte auffallen.
+    - cron: "0 4 * * 1"
+
+permissions:
+  contents: read
+
+jobs:
+  pruefen:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Tests
+        run: python3 -m unittest discover -s tests
+
+      - name: Jeden Feed abrufen
+        run: python3 generate_briefing.py --pruefe
+
+      - name: Gegenprobe ohne Rubrikfilter
+        if: always()
+        run: python3 generate_briefing.py --pruefe --ohne-rubrikfilter
