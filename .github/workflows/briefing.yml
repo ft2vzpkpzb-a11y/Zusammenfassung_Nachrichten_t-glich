@@ -1,0 +1,64 @@
+name: Briefing bauen
+
+on:
+  schedule:
+    # 05:00 UTC = 07:00 Wien (Sommerzeit) bzw. 06:00 (Winterzeit).
+    # GitHub startet geplante Läufe je nach Auslastung ein paar Minuten später.
+    - cron: "0 5 * * *"
+  workflow_dispatch: # Knopf „Run workflow“ im Actions-Tab
+  push:
+    branches: [main]
+    paths:
+      - "briefing/**"
+      - "config/feeds.json"
+      - "generate_briefing.py"
+      - ".github/workflows/briefing.yml"
+
+permissions:
+  contents: write
+
+concurrency:
+  group: briefing
+  cancel-in-progress: false
+
+jobs:
+  bauen:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Abhängigkeiten installieren
+        run: pip install -r requirements.txt
+
+      - name: Übersetzungs-Cache laden
+        uses: actions/cache@v4
+        with:
+          path: cache
+          key: uebersetzungen-${{ github.run_id }}
+          restore-keys: uebersetzungen-
+
+      - name: Tests
+        run: python3 -m unittest discover -s tests
+
+      - name: Briefing erzeugen
+        env:
+          # Ohne dieses Secret bleiben die FT-Schlagzeilen englisch —
+          # das Briefing wird trotzdem gebaut.
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+        run: python3 generate_briefing.py --site docs --archiv-tage 30
+
+      - name: Veröffentlichen
+        run: |
+          git config user.name "briefing-bot"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add docs
+          if git diff --quiet --cached; then
+            echo "Keine Änderung — nichts zu veröffentlichen."
+          else
+            git commit -m "Briefing $(date -u +%Y-%m-%d)"
+            git push
+          fi

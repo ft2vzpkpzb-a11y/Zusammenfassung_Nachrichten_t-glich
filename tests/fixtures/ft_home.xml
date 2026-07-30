@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<rss version="2.0" xmlns:dc="http://purl.org/dc/elements/1.1/"
+     xmlns:content="http://purl.org/rss/1.0/modules/content/">
+  <channel>
+    <title>Financial Times &gt; Home</title>
+    <link>https://www.ft.com/</link>
+    <description>Sample feed for tests</description>
+    <item>
+      <title>Sample regulator opens inquiry into demo lender</title>
+      <link>https://www.ft.com/content/00000000-0000-0000-0000-000000000001</link>
+      <description>Placeholder standfirst for the first test story.</description>
+      <pubDate>Thu, 30 Jul 2026 05:03:11 GMT</pubDate>
+      <guid isPermaLink="false">00000000-0000-0000-0000-000000000001</guid>
+    </item>
+    <item>
+      <title>Fictional index closes higher on mock earnings data</title>
+      <link>https://www.ft.com/content/00000000-0000-0000-0000-000000000002</link>
+      <pubDate>Thu, 30 Jul 2026 04:15:00 GMT</pubDate>
+      <guid isPermaLink="false">00000000-0000-0000-0000-000000000002</guid>
+    </item>
+    <item>
+      <title>Example central bank holds rate in placeholder decision</title>
+      <link>https://www.ft.com/content/00000000-0000-0000-0000-000000000003</link>
+      <pubDate>Wed, 29 Jul 2026 22:40:00 GMT</pubDate>
+      <guid isPermaLink="false">00000000-0000-0000-0000-000000000003</guid>
+    </item>
+  </channel>
+</rss>
