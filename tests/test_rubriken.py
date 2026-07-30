@@ -114,15 +114,30 @@ class TestFilterImAbruf(unittest.TestCase):
         self.assertIn("Sport", ergebnis.status[0].rubriken)
         self.assertIn("Inland", ergebnis.status[0].rubriken)
 
-    def test_presse_kategorien(self):
+    def test_ressortfeed_wird_vollstaendig_uebernommen(self):
+        """…/rss/Politik ist bereits das Ressort — die Redaktion hat sortiert.
+
+        Deshalb bleiben auch Einträge ohne Ressortangabe und solche mit einem
+        Schlagwort wie „Kultur" drin: „Kulturpolitischer Beirat" ist Politik.
+        """
         quelle = Quelle(id="presse", name="Die Presse", feeds=["https://www.diepresse.com/rss/Politik"])
+        ergebnis = hole_mit_fixture(quelle, "presse_politik.xml")
+
+        titel = [s.titel for s in ergebnis.schlagzeilen]
+        self.assertEqual(len(titel), 4)
+        self.assertIn("Regierung einigt sich auf Muster-Paket", titel)
+        self.assertIn("Eintrag ganz ohne Ressortangabe", titel)
+        self.assertEqual(ergebnis.status[0].gefiltert, 0)
+
+    def test_sammelfeed_derselben_quelle_wird_gefiltert(self):
+        """Aus einem Sammelfeld (…/rss/home) entscheidet dagegen der Eintrag."""
+        quelle = Quelle(id="presse", name="Die Presse", feeds=["https://www.diepresse.com/rss/home"])
         ergebnis = hole_mit_fixture(quelle, "presse_politik.xml")
 
         titel = [s.titel for s in ergebnis.schlagzeilen]
         self.assertIn("Regierung einigt sich auf Muster-Paket", titel)
         self.assertNotIn("Kulturpolitischer Beirat tagt zum ersten Mal", titel)
-        # Ohne eigenes Ressort rettet der Feed-Pfad (…/rss/Politik) den Eintrag.
-        self.assertIn("Eintrag ganz ohne Ressortangabe", titel)
+        self.assertNotIn("Eintrag ganz ohne Ressortangabe", titel)
 
     def test_quelle_ohne_filter_behaelt_alles(self):
         ft = Quelle(id="ft", name="FT", feeds=["https://www.ft.com/rss/home"], rubriken_filtern=False)
@@ -150,6 +165,41 @@ class TestFilterImAbruf(unittest.TestCase):
         self.assertEqual(ergebnis.schlagzeilen, [])
         self.assertTrue(ergebnis.status[0].ok)  # Der Feed war in Ordnung …
         self.assertIn("Politik/Wirtschaft", ergebnis.status[0].fehler)  # … nur unpassend.
+
+
+class TestRessortfeeds(unittest.TestCase):
+    """Ein Feed, dessen Adresse das Ressort nennt, wird komplett übernommen."""
+
+    def test_ressortfeed_wird_erkannt(self):
+        f = Rubrikfilter()
+        self.assertTrue(rubriken.ist_ressortfeed("https://www.ots.at/rss/wirtschaft", f))
+        self.assertTrue(rubriken.ist_ressortfeed("https://feeds.bbci.co.uk/news/politics/rss.xml", f))
+        self.assertFalse(rubriken.ist_ressortfeed("https://rss.orf.at/news.xml", f))
+        self.assertFalse(rubriken.ist_ressortfeed("https://www.ots.at/rss/kultur", f))
+
+    def test_schlagwoerter_kippen_keine_ressortfeed_meldung(self):
+        """Guardian verschlagwortet Wirtschaftsartikel u. a. mit „Television industry“."""
+        feed = b"""<?xml version="1.0"?><rss version="2.0"><channel>
+        <item><title>Sender streicht Sendung nach Streit</title>
+        <link>https://www.theguardian.com/business/2026/jul/30/slug</link>
+        <category>Television industry</category><category>Media</category></item>
+        </channel></rss>"""
+        quelle = Quelle(id="guardian", name="Guardian",
+                        feeds=["https://www.theguardian.com/business/rss"])
+        original = fetch.hole_feed
+        fetch.hole_feed = lambda url, timeout=20, versuche=3: feed
+        try:
+            ergebnis = fetch.hole_quelle(quelle, rubrikfilter=Rubrikfilter())
+        finally:
+            fetch.hole_feed = original
+
+        self.assertEqual(len(ergebnis.schlagzeilen), 1)
+        self.assertEqual(ergebnis.status[0].gefiltert, 0)
+
+    def test_sammelfeed_wird_weiterhin_je_eintrag_geprueft(self):
+        quelle = Quelle(id="orf", name="ORF.at", feeds=["https://rss.orf.at/news.xml"])
+        ergebnis = hole_mit_fixture(quelle, "orf_gemischt.xml")
+        self.assertEqual(ergebnis.status[0].gefiltert, 2)  # Sport und Kultur raus
 
 
 class TestKonfiguration(unittest.TestCase):

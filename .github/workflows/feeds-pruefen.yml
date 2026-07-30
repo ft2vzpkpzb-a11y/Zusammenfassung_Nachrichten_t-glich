@@ -30,6 +30,9 @@ jobs:
         with:
           python-version: "3.12"
 
+      - name: Abhängigkeiten installieren
+        run: pip install -r requirements.txt
+
       - name: Tests
         run: python3 -m unittest discover -s tests
 

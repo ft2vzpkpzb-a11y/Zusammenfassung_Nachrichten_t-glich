@@ -318,6 +318,11 @@ def hole_quelle(
             )
             continue
 
+        # Ein Feed, dessen Adresse schon das Ressort nennt, wird komplett
+        # übernommen — sonst würden Artikel-Schlagwörter (Guardian: „Media",
+        # „Television industry") Meldungen aus dem richtigen Ressort kippen.
+        eintraege_pruefen = filtern and not rubriken.ist_ressortfeed(url, rubrikfilter)
+
         neue = 0
         aussortiert = 0
         gefundene_rubriken: list[str] = []
@@ -326,7 +331,9 @@ def hole_quelle(
                 if rubrik not in gefundene_rubriken:
                     gefundene_rubriken.append(rubrik)
 
-            if filtern and not rubrikfilter.passt(rubriken.signale(schlagzeile, url)):
+            if eintraege_pruefen and not rubrikfilter.passt(
+                rubriken.signale(schlagzeile, url)
+            ):
                 aussortiert += 1
                 continue
 

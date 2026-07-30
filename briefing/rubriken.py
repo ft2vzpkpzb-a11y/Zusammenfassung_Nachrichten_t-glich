@@ -87,6 +87,19 @@ def artikelsignale(url: str) -> list[str]:
     return teile[:-1] if len(teile) > 1 else []
 
 
+def ist_ressortfeed(url: str, filter_) -> bool:
+    """Trägt schon die Feed-Adresse das gewünschte Ressort?
+
+    Ein Feed wie ``…/rss/wirtschaft`` oder ``…/news/politics/rss.xml`` ist
+    per Definition das richtige Ressort. Dann dürfen die Schlagwörter der
+    einzelnen Artikel nicht mehr aussortieren: der Guardian verschlagwortet
+    Wirtschaftsartikel unter anderem mit „Television industry" oder „Media" —
+    über die Sperrliste würden solche Meldungen sonst verschwinden, obwohl sie
+    aus dem Wirtschaftsressort stammen.
+    """
+    return filter_.passt(pfadsignale(url))
+
+
 def signale(schlagzeile, feed_url: str = "") -> list[str]:
     """Alle Ressort-Hinweise zu einer Schlagzeile einsammeln."""
     gesammelt = list(schlagzeile.kategorien)

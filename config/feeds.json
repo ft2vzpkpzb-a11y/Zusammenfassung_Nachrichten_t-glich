@@ -64,10 +64,6 @@
             "https://www.diepresse.com/rss/wirtschaft",
             "https://diepresse.com/rss/Wirtschaft"
           ]
-        },
-        {
-          "url": "https://www.diepresse.com/rss/EU",
-          "alternativen": ["https://www.diepresse.com/rss/eu"]
         }
       ]
     },
