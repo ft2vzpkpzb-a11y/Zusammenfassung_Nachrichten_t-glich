@@ -2,8 +2,10 @@
 
 from __future__ import annotations
 
-from datetime import datetime
+from datetime import date, datetime
 from html import escape
+
+from . import pwa
 
 WOCHENTAGE = [
     "Montag",
@@ -261,12 +263,38 @@ a { color: inherit; }
 }
 .versteckt { display: none !important; }
 
+/* ---------- Archiv ---------- */
+.archiv { margin-top: 40px; }
+.archiv__liste { list-style: none; margin: 0; padding: 0; display: flex; flex-wrap: wrap; gap: 8px; }
+.archiv__liste a {
+  display: block; padding: 8px 14px; font-size: .86rem; text-decoration: none;
+  background: var(--bg-karte); border: 1px solid var(--rand); border-radius: 999px;
+}
+.archiv__liste a:hover { border-color: var(--akzent); color: var(--akzent); }
+
+/* ---------- Zurück nach oben (vor allem am Handy nützlich) ---------- */
+.nach-oben {
+  position: fixed; right: 16px; bottom: 16px; z-index: 30;
+  width: 46px; height: 46px; border-radius: 50%; cursor: pointer;
+  display: grid; place-items: center; font-size: 1.1rem;
+  color: var(--text); background: var(--bg-karte);
+  border: 1px solid var(--rand-stark); box-shadow: var(--schatten);
+  opacity: 0; visibility: hidden; transition: opacity .18s ease;
+}
+.nach-oben.sichtbar { opacity: .96; visibility: visible; }
+
 @media (max-width: 560px) {
   .huelle { padding: 0 14px 56px; }
   .gross .karte__name { font-size: 1.2rem; }
   .karte__kopf { flex-wrap: wrap; row-gap: 6px; }
   .kennzahl { padding: 6px 12px; }
-  .knopf { flex: 1 1 auto; }
+  /* Am Handy nicht kleben: die Leiste würde sonst ein Viertel des Bildschirms
+     belegen und den Inhalt überdecken. Nach oben führt der runde Knopf. */
+  .werkzeuge { position: static; backdrop-filter: none; padding: 10px 0 14px; }
+  .suche { flex: 1 1 100%; }
+  .knopf { flex: 1 1 0; text-align: center; }
+  .knopf--drucken { display: none; }
+  .kopf { padding: 28px 0 20px; }
 }
 
 @media print {
@@ -318,6 +346,17 @@ JS = """
     });
   }
   if (knopfAlle) knopfAlle.addEventListener('click', alleUmschalten);
+
+  var nachOben = document.getElementById('nachOben');
+  if (nachOben) {
+    nachOben.addEventListener('click', function () {
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    });
+    window.addEventListener('scroll', function () {
+      nachOben.classList.toggle('sichtbar', window.scrollY > 700);
+    }, { passive: true });
+  }
+
   if (knopfTheme) {
     knopfTheme.addEventListener('click', function () {
       var wurzel = document.documentElement;
@@ -479,14 +518,35 @@ def _statusabschnitt(ergebnisse: dict, quellen: list, uebersetzung_hinweis: str)
     )
 
 
+def _archivabschnitt(archiv: list[date]) -> str:
+    """Liste vergangener Ausgaben — nur im Web-Modus vorhanden."""
+    if not archiv:
+        return ""
+    eintraege = "".join(
+        f'<li><a href="archiv/{tag:%Y-%m-%d}.html">'
+        f"{WOCHENTAGE[tag.weekday()][:2]}, {tag.day}. {MONATE[tag.month - 1][:3]}</a></li>"
+        for tag in archiv
+    )
+    return (
+        '<section class="archiv"><h2 class="rubrik__titel">Frühere Ausgaben</h2>'
+        f'<ul class="archiv__liste">{eintraege}</ul></section>'
+    )
+
+
 def rendere_briefing(
     konfiguration,
     ergebnisse: dict,
     jetzt: datetime,
     uebersetzung_hinweis: str = "",
     demo: bool = False,
+    web: bool = False,
+    archiv: list[date] | None = None,
 ) -> str:
-    """Baut die vollständige HTML-Seite."""
+    """Baut die vollständige HTML-Seite.
+
+    ``web=True`` ergänzt Manifest, Symbole und Service-Worker-Registrierung,
+    damit die Seite am Handy als App auf den Startbildschirm gelegt werden kann.
+    """
     quellen = konfiguration.quellen
     gesamt = sum(len(e.schlagzeilen) for e in ergebnisse.values())
     uebersetzt = sum(
@@ -538,13 +598,16 @@ def rendere_briefing(
     )
 
     titel = f"{konfiguration.titel} — {jetzt:%d.%m.%Y}"
+    app_kopf = pwa.kopfzeilen() if web else ""
+    app_skript = pwa.registrierung() if web else ""
     return f"""<!doctype html>
 <html lang="de">
 <head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="color-scheme" content="light dark">
 <title>{escape(titel)}</title>
+{app_kopf}
 <style>{CSS}</style>
 </head>
 <body>
@@ -568,16 +631,19 @@ def rendere_briefing(
   <span id="treffer" class="treffer" role="status"></span>
   <button id="alle" class="knopf" type="button">Alle aufklappen</button>
   <button id="theme" class="knopf" type="button">Hell / Dunkel</button>
-  <button class="knopf" type="button" onclick="window.print()">Drucken</button>
+  <button class="knopf knopf--drucken" type="button" onclick="window.print()">Drucken</button>
 </div>
 
 {"".join(abschnitte)}
+{_archivabschnitt(archiv or [])}
 {_statusabschnitt(ergebnisse, quellen, uebersetzung_hinweis)}
 <p class="fuss">Erzeugt am {jetzt:%d.%m.%Y um %H:%M} Uhr · Es werden je Quelle die
 {konfiguration.sichtbare_schlagzeilen} aktuellsten Schlagzeilen angezeigt, alle weiteren
 stehen im Aufklapper.</p>
 </div>
-<script>{JS}</script>
+<button id="nachOben" class="nach-oben" type="button" aria-label="Nach oben">↑</button>
+<script>{JS}
+{app_skript}</script>
 </body>
 </html>
 """

@@ -14,10 +14,11 @@ from __future__ import annotations
 import argparse
 import sys
 from concurrent.futures import ThreadPoolExecutor
-from datetime import datetime
+from datetime import date, datetime
 from pathlib import Path
 from zoneinfo import ZoneInfo
 
+from briefing import pwa
 from briefing.demo import demo_ergebnis
 from briefing.feeds import lade_konfiguration
 from briefing.fetch import hole_quelle
@@ -39,7 +40,45 @@ def argumente() -> argparse.Namespace:
     parser.add_argument("--ohne-uebersetzung", action="store_true", help="Keine Übersetzung anfordern")
     parser.add_argument("--demo", action="store_true", help="Beispieldaten statt echter Feeds")
     parser.add_argument("--quelle", action="append", default=[], help="Nur diese Quellen-ID(s) verwenden")
+    parser.add_argument(
+        "--site",
+        default="",
+        help="Website-Verzeichnis bauen (index.html, archiv/, App-Dateien) — z. B. --site docs",
+    )
+    parser.add_argument(
+        "--archiv-tage", type=int, default=30, help="Wie viele frühere Ausgaben behalten (Standard 30)"
+    )
     return parser.parse_args()
+
+
+def baue_website(
+    verzeichnis: Path, html_bauen, jetzt: datetime, titel: str, archiv_tage: int
+) -> Path:
+    """Schreibt index.html, die Tagesausgabe ins Archiv und die App-Dateien."""
+    archiv_ordner = verzeichnis / "archiv"
+    archiv_ordner.mkdir(parents=True, exist_ok=True)
+
+    # Vorhandene Ausgaben einsammeln (ohne die von heute) und alte wegräumen.
+    vorhanden: list[date] = []
+    for datei in archiv_ordner.glob("*.html"):
+        try:
+            tag = date.fromisoformat(datei.stem)
+        except ValueError:
+            continue
+        if tag == jetzt.date():
+            continue
+        if (jetzt.date() - tag).days > archiv_tage:
+            datei.unlink()
+            continue
+        vorhanden.append(tag)
+    vorhanden.sort(reverse=True)
+
+    html = html_bauen(vorhanden)
+    (verzeichnis / "index.html").write_text(html, encoding="utf-8")
+    (archiv_ordner / f"{jetzt:%Y-%m-%d}.html").write_text(html, encoding="utf-8")
+    (verzeichnis / ".nojekyll").write_text("", encoding="utf-8")
+    pwa.schreibe_dateien(verzeichnis, titel)
+    return verzeichnis / "index.html"
 
 
 def main() -> int:
@@ -103,10 +142,20 @@ def main() -> int:
         hinweis = "Übersetzung per --ohne-uebersetzung deaktiviert."
 
     # --- Rendern ---
-    html = rendere_briefing(konfiguration, ergebnisse, jetzt, hinweis, demo=args.demo)
-    ziel = Path(args.out) if args.out else WURZEL / "out" / f"briefing-{jetzt:%Y-%m-%d}.html"
-    ziel.parent.mkdir(parents=True, exist_ok=True)
-    ziel.write_text(html, encoding="utf-8")
+    if args.site:
+        def html_bauen(archiv: list[date]) -> str:
+            return rendere_briefing(
+                konfiguration, ergebnisse, jetzt, hinweis, demo=args.demo, web=True, archiv=archiv
+            )
+
+        ziel = baue_website(
+            Path(args.site), html_bauen, jetzt, konfiguration.titel, args.archiv_tage
+        )
+    else:
+        html = rendere_briefing(konfiguration, ergebnisse, jetzt, hinweis, demo=args.demo)
+        ziel = Path(args.out) if args.out else WURZEL / "out" / f"briefing-{jetzt:%Y-%m-%d}.html"
+        ziel.parent.mkdir(parents=True, exist_ok=True)
+        ziel.write_text(html, encoding="utf-8")
 
     # --- Kurzbericht fürs Log (macht stille Ausfälle im Cron sichtbar) ---
     gesamt = 0

@@ -1,0 +1,10 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" role="img" aria-label="Nachrichten-Briefing">
+  <rect width="512" height="512" rx="112" fill="#16181d"/>
+  <rect x="96" y="112" width="228" height="24" rx="12" fill="#f6f6f4"/>
+  <rect x="96" y="176" width="320" height="16" rx="8" fill="#8a919e"/>
+  <rect x="96" y="220" width="320" height="16" rx="8" fill="#8a919e"/>
+  <rect x="96" y="264" width="240" height="16" rx="8" fill="#8a919e"/>
+  <rect x="96" y="332" width="320" height="16" rx="8" fill="#5c6270"/>
+  <rect x="96" y="376" width="180" height="16" rx="8" fill="#5c6270"/>
+  <circle cx="386" cy="120" r="26" fill="#c8102e"/>
+</svg>
