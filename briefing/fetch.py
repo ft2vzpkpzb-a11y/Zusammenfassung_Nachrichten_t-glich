@@ -246,6 +246,45 @@ def hole_feed(url: str, timeout: int = 20, versuche: int = 3) -> bytes:
     raise RuntimeError(str(letzter_fehler))
 
 
+def _hole_ersten_treffer(adresse, quelle_id: str, timeout: int):
+    """Adresse und Ausweichadressen der Reihe nach probieren.
+
+    Rückgabe: (verwendete URL, Schlagzeilen oder None, Format, Fehlertext).
+    Gewonnen hat die erste Adresse, die überhaupt Einträge liefert — eine
+    Seite, die auf einen unbekannten Pfad mit einer leeren, aber gültigen
+    XML-Hülle antwortet, zählt also nicht.
+    """
+    kandidaten = getattr(adresse, "kandidaten", None) or [str(adresse)]
+    letzte_url = kandidaten[0]
+    letzter_fehler = "unbekannter Fehler"
+    leerer_treffer = None
+
+    for nummer, url in enumerate(kandidaten):
+        letzte_url = url
+        # Nur die Hauptadresse bekommt Wiederholversuche; die Ausweichadressen
+        # werden einmal probiert, sonst dauert ein toter Feed ewig.
+        versuche = 3 if nummer == 0 else 1
+        try:
+            rohdaten = hole_feed(url, timeout=timeout, versuche=versuche)
+            schlagzeilen, format_name = parse_feed(rohdaten, quelle_id)
+        except ET.ParseError as fehler:
+            letzter_fehler = f"XML nicht lesbar ({fehler})"
+            continue
+        except Exception as fehler:  # Netzwerk, HTTP-Status, gzip …
+            letzter_fehler = str(fehler)
+            continue
+
+        if schlagzeilen:
+            return url, schlagzeilen, format_name, ""
+        # Leer, aber lesbar: merken und erst nutzen, wenn nichts Besseres kommt.
+        leerer_treffer = leerer_treffer or (url, [], format_name, "")
+        letzter_fehler = "Feed gelesen, aber ohne Einträge"
+
+    if leerer_treffer:
+        return leerer_treffer
+    return letzte_url, None, "unbekannt", letzter_fehler
+
+
 def hole_quelle(
     quelle,
     max_schlagzeilen: int = 80,
@@ -262,29 +301,18 @@ def hole_quelle(
     gesehen: set[str] = set()
     filtern = rubrikfilter is not None and rubrikfilter.aktiv and quelle.rubriken_filtern
 
-    for url in quelle.feeds:
+    for adresse in quelle.feeds:
         start = time.monotonic()
-        try:
-            rohdaten = hole_feed(url, timeout=timeout)
-            schlagzeilen, format_name = parse_feed(rohdaten, quelle.id)
-        except ET.ParseError as fehler:
+        url, schlagzeilen, format_name, fehlermeldung = _hole_ersten_treffer(
+            adresse, quelle.id, timeout
+        )
+        if schlagzeilen is None:
             ergebnis.status.append(
                 FeedStatus(
                     url=url,
                     quelle_id=quelle.id,
                     ok=False,
-                    fehler=f"XML nicht lesbar ({fehler})",
-                    dauer_ms=int((time.monotonic() - start) * 1000),
-                )
-            )
-            continue
-        except Exception as fehler:  # Netzwerk, HTTP-Status, gzip …
-            ergebnis.status.append(
-                FeedStatus(
-                    url=url,
-                    quelle_id=quelle.id,
-                    ok=False,
-                    fehler=str(fehler),
+                    fehler=fehlermeldung,
                     dauer_ms=int((time.monotonic() - start) * 1000),
                 )
             )
@@ -317,6 +345,11 @@ def hole_quelle(
             hinweis = f"{aussortiert} Einträge, keiner in Politik/Wirtschaft"
         else:
             hinweis = ""
+
+        haupt_url = getattr(adresse, "url", url)
+        if url != haupt_url:
+            ausweich = f"Ausweichadresse verwendet statt {haupt_url}"
+            hinweis = f"{ausweich} · {hinweis}" if hinweis else ausweich
 
         ergebnis.status.append(
             FeedStatus(

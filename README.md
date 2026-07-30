@@ -162,6 +162,22 @@ Alles steckt in `config/feeds.json` — kein Code-Eingriff nötig:
 | `rubriken_filtern` | `false` schaltet den Politik/Wirtschaft-Filter für diese Quelle ab (nur die FT) |
 | `hinweis` | Kurzer Text, der in der Karte über den Schlagzeilen steht |
 
+Ein Feed-Eintrag ist entweder eine Adresse als Text oder ein Objekt mit
+Ausweichadressen. Die werden der Reihe nach probiert, wenn die erste nicht
+antwortet **oder nichts liefert** — eine falsche Groß-/Kleinschreibung im Pfad
+lässt eine Quelle damit nicht mehr leer:
+
+```json
+"feeds": [
+  {
+    "url": "https://www.diepresse.com/rss/Politik",
+    "alternativen": ["https://www.diepresse.com/rss/politik"]
+  }
+]
+```
+
+Welche Adresse tatsächlich geliefert hat, steht danach in der Statustabelle.
+
 Ob eine Feed-Adresse stimmt, sagt dir ohne Umweg über das ganze Briefing:
 
 ```bash
@@ -181,6 +197,11 @@ Mitteilungen von Ministerien, Parteien, Kammern und Unternehmen. Inhaltlich sind
 das Originaltexte der Absender, keine redaktionellen Meldungen. Wer den
 Basisdienst braucht, kommt an einem Vertrag mit der APA nicht vorbei; als Ersatz
 liefern ORF, Standard und Presse ohnehin größtenteils APA-gestützte Meldungen.
+
+OTS liefert seine Aussendungen über Themenkanäle
+(`https://www.ots.at/rss/<kanal>`); eingetragen sind `politik` und `wirtschaft`.
+Weitere Kanäle sind unter anderem `medien`, `technologie`, `kultur`, `panorama`
+und `chronik`.
 
 ## Nur Politik & Wirtschaft
 
@@ -229,12 +250,13 @@ funktioniert, steht nach dem nächsten Lauf in der Statustabelle.
 python3 -m unittest discover -s tests -v
 ```
 
-55 Tests, keine Netzwerkzugriffe: Parser für RDF/RSS 2.0/Atom, Datums- und
+65 Tests, keine Netzwerkzugriffe: Parser für RDF/RSS 2.0/Atom, Datums- und
 Link-Ermittlung, Deduplizierung, Fehlerstatus, Rendering (5 sichtbar +
 Aufklapper, Übersetzungsreihenfolge, HTML-Maskierung), Konfigurationsprüfung,
 Übersetzung mit Stub-Client (Structured Outputs, Cache, Verhalten ohne API-Key),
 Website-Modus (Archiv-Aufräumen, Manifest, Service Worker) sowie der
-Rubrikfilter (Kategorien, `dc:subject`, Pfad-Signale, Sperr- vor Erlaubt-Liste).
+Rubrikfilter (Kategorien, `dc:subject`, Pfad-Signale, Sperr- vor Erlaubt-Liste)
+und die Ausweichadressen.
 Dieselben Tests laufen im Workflow vor jedem Veröffentlichen.
 
 ## Aufbau

@@ -10,12 +10,42 @@ from .rubriken import ERLAUBT, GESPERRT, Rubrikfilter
 
 
 @dataclass
+class Feedadresse:
+    """Eine Feed-Adresse samt Ausweichadressen.
+
+    Redaktionen schreiben ihre Ressorts unterschiedlich (``/rss/Politik`` vs.
+    ``/rss/politik``) und ziehen Feeds gelegentlich um. Schlägt die erste
+    Adresse fehl oder liefert nichts, werden der Reihe nach die Alternativen
+    probiert — so bleibt eine Quelle nicht wegen eines Großbuchstabens leer.
+    """
+
+    url: str
+    alternativen: list[str] = field(default_factory=list)
+
+    @property
+    def kandidaten(self) -> list[str]:
+        return [self.url, *self.alternativen]
+
+
+def _als_feedadresse(wert) -> Feedadresse:
+    if isinstance(wert, Feedadresse):
+        return wert
+    if isinstance(wert, str):
+        return Feedadresse(url=wert)
+    if isinstance(wert, dict) and wert.get("url"):
+        return Feedadresse(
+            url=wert["url"], alternativen=list(wert.get("alternativen") or [])
+        )
+    raise ValueError(f"Feed-Eintrag nicht lesbar: {wert!r}")
+
+
+@dataclass
 class Quelle:
     """Eine Nachrichtenquelle (eine Spalte im Briefing)."""
 
     id: str
     name: str
-    feeds: list[str]
+    feeds: list
     kategorie: str = "Sonstige"
     sprache: str = "de"
     farbe: str = "#4b5563"
@@ -25,6 +55,10 @@ class Quelle:
     alle_anzeigen: bool = False
     rubriken_filtern: bool = True
     hinweis: str = ""
+
+    def __post_init__(self) -> None:
+        # Erlaubt sowohl "https://…" als auch {"url": …, "alternativen": [...]}
+        self.feeds = [_als_feedadresse(f) for f in self.feeds]
 
 
 @dataclass

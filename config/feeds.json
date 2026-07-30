@@ -51,8 +51,24 @@
       "farbe": "#1a1a1a",
       "webseite": "https://www.diepresse.com",
       "feeds": [
-        "https://www.diepresse.com/rss/Politik",
-        "https://www.diepresse.com/rss/Wirtschaft"
+        {
+          "url": "https://www.diepresse.com/rss/Politik",
+          "alternativen": [
+            "https://www.diepresse.com/rss/politik",
+            "https://diepresse.com/rss/Politik"
+          ]
+        },
+        {
+          "url": "https://www.diepresse.com/rss/Wirtschaft",
+          "alternativen": [
+            "https://www.diepresse.com/rss/wirtschaft",
+            "https://diepresse.com/rss/Wirtschaft"
+          ]
+        },
+        {
+          "url": "https://www.diepresse.com/rss/EU",
+          "alternativen": ["https://www.diepresse.com/rss/eu"]
+        }
       ]
     },
     {
@@ -64,7 +80,20 @@
       "webseite": "https://www.ots.at",
       "hinweis": "Der redaktionelle APA-Basisdienst ist kostenpflichtig und hat keinen öffentlichen Feed. Öffentlich zugänglich sind die Aussendungen über APA-OTS (Ministerien, Parteien, Unternehmen).",
       "feeds": [
-        "https://www.ots.at/rss/aktuell"
+        {
+          "url": "https://www.ots.at/rss/politik",
+          "alternativen": [
+            "https://www.ots.at/rss/Politik",
+            "http://www.ots.at/rss/politik"
+          ]
+        },
+        {
+          "url": "https://www.ots.at/rss/wirtschaft",
+          "alternativen": [
+            "https://www.ots.at/rss/Wirtschaft",
+            "http://www.ots.at/rss/wirtschaft"
+          ]
+        }
       ]
     },
     {

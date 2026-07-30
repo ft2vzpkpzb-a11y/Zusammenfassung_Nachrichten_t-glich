@@ -75,11 +75,11 @@ def pruefe_feeds(konfiguration, timeout: int) -> int:
         if quelle.hinweis:
             print(f"  Hinweis: {quelle.hinweis}")
 
-        for url in quelle.feeds:
+        for adresse in quelle.feeds:
             einzeln = Quelle(
                 id=quelle.id,
                 name=quelle.name,
-                feeds=[url],
+                feeds=[adresse],
                 rubriken_filtern=quelle.rubriken_filtern,
             )
             ergebnis = hole_quelle(
@@ -90,11 +90,17 @@ def pruefe_feeds(konfiguration, timeout: int) -> int:
             )
             status = ergebnis.status[0]
             marke = "ok  " if status.ok else "FEHL"
-            print(f"  [{marke}] {url}")
             if not status.ok:
                 probleme += 1
+                print(f"  [{marke}] {adresse.url}")
                 print(f"         {status.fehler}")
+                if adresse.alternativen:
+                    print(f"         auch ohne Erfolg: {', '.join(adresse.alternativen)}")
                 continue
+
+            print(f"  [{marke}] {status.url}")
+            if status.url != adresse.url:
+                print(f"         (Ausweichadresse — {adresse.url} ging nicht)")
 
             gesamt = status.anzahl + status.gefiltert
             print(
