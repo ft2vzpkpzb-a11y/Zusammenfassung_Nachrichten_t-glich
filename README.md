@@ -63,6 +63,8 @@ lässt sich jederzeit von Hand nachbauen.
 | | |
 |---|---|
 | **Erste fünf offen** | Je Quelle sind die fünf aktuellsten Schlagzeilen sichtbar; der Rest (auch 50+) steckt in einem Aufklapper und ist einen Klick entfernt. Über `sichtbare_schlagzeilen` einstellbar. |
+| **Politik & Wirtschaft** | Alle Quellen außer der FT sind auf diese beiden Ressorts eingegrenzt — über Feed-Kategorien, `dc:subject` und den Link-Pfad. Siehe [Nur Politik & Wirtschaft](#nur-politik--wirtschaft). |
+| **Quellen** | ORF.at, DER STANDARD, Die Presse, APA-OTS, tagesschau, SPIEGEL, ZEIT ONLINE, Financial Times, BBC News, The Guardian |
 | **Financial Times komplett** | Die FT wird aus drei Feeds (Home, World, Companies) zusammengeführt, dedupliziert und als hervorgehobene Karte oben angezeigt — deutsche Übersetzung als Haupttitel, englisches Original klein darunter. |
 | **Übersetzung** | Über die Claude Messages API (`claude-opus-5`, Structured Outputs). Ergebnisse landen im Cache, ein zweiter Lauf am selben Tag kostet nichts. Ohne API-Key erscheinen die Schlagzeilen im Original — das Briefing bricht nicht ab. |
 | **Feed-Status** | Unten steht je Feed: Status, erkanntes Format, Anzahl Einträge, Dauer. Eine leere Quelle wird als Fehler angezeigt statt still zu verschwinden. |
@@ -128,6 +130,8 @@ wenn keine einzige Schlagzeile ankam — das lässt sich überwachen.
 | `--config PFAD` | Andere Feed-Konfiguration verwenden |
 | `--site ORDNER` | Website bauen: `index.html`, `archiv/<datum>.html`, Manifest, Service Worker, Symbole |
 | `--archiv-tage N` | Wie viele frühere Ausgaben behalten (Standard 30) |
+| `--pruefe` | Nur prüfen: jeden Feed abrufen und melden, was ankommt (baut kein Briefing) |
+| `--ohne-rubrikfilter` | Alle Ressorts übernehmen statt nur Politik und Wirtschaft |
 
 ## Quellen anpassen
 
@@ -155,6 +159,65 @@ Alles steckt in `config/feeds.json` — kein Code-Eingriff nötig:
 | `uebersetzen` | Schlagzeilen dieser Quelle übersetzen lassen |
 | `hervorheben` | Karte über volle Breite ganz oben unter „Im Fokus“ |
 | `alle_anzeigen` | Keine Obergrenze durch `max_schlagzeilen_pro_quelle` |
+| `rubriken_filtern` | `false` schaltet den Politik/Wirtschaft-Filter für diese Quelle ab (nur die FT) |
+| `hinweis` | Kurzer Text, der in der Karte über den Schlagzeilen steht |
+
+Ob eine Feed-Adresse stimmt, sagt dir ohne Umweg über das ganze Briefing:
+
+```bash
+python3 generate_briefing.py --pruefe                    # alle Quellen
+python3 generate_briefing.py --pruefe --quelle presse     # nur eine
+```
+
+Die Ausgabe zeigt je Feed Status, Format, Anzahl, die im Feed vorkommenden
+Ressorts und wie viele Einträge nach dem Rubrikfilter übrig bleiben.
+
+### Zur APA
+
+Der redaktionelle **APA-Basisdienst** (die eigentliche Nachrichtenagentur) ist
+kostenpflichtig lizenziert und hat keinen öffentlichen RSS-Feed. Eingebunden ist
+deshalb **APA-OTS** — der öffentlich zugängliche Aussendungsdienst mit
+Mitteilungen von Ministerien, Parteien, Kammern und Unternehmen. Inhaltlich sind
+das Originaltexte der Absender, keine redaktionellen Meldungen. Wer den
+Basisdienst braucht, kommt an einem Vertrag mit der APA nicht vorbei; als Ersatz
+liefern ORF, Standard und Presse ohnehin größtenteils APA-gestützte Meldungen.
+
+## Nur Politik & Wirtschaft
+
+Alle Quellen außer der Financial Times sind auf Politik und Wirtschaft
+eingegrenzt. Weil Feeds ihr Ressort unterschiedlich angeben, wertet der Filter
+drei Signale aus (`briefing/rubriken.py`):
+
+1. `<category>Wirtschaft</category>` — RSS 2.0, z. B. Die Presse, APA-OTS
+2. `<dc:subject>Inland</dc:subject>` — RSS 1.0/RDF, z. B. ORF
+3. den **Pfad** von Artikel- und Feed-Adresse (`/politik/`, `/news/business/`)
+
+Ein Eintrag bleibt, wenn mindestens ein Signal auf der Erlaubt-Liste steht und
+keines auf der Sperr-Liste. Die Sperre gewinnt: „Kulturpolitik“ fliegt raus,
+obwohl „politik“ darin vorkommt. Vom Artikel-Link wird der letzte Pfadteil
+ignoriert — sonst würde eine Meldung wie
+`…/streit-ueber-sportbudget` am Wort „sport“ hängen bleiben.
+
+Wo es eigene Ressort-Feeds gibt (Standard, Presse, tagesschau, SPIEGEL, ZEIT,
+BBC, Guardian), sind direkt die eingetragen; der Filter ist dort nur zweite
+Absicherung. Der ORF bietet keine — dort entscheidet `<dc:subject>`.
+
+Anpassen in `config/feeds.json`:
+
+```json
+"rubrikfilter": {
+  "aktiv": true,
+  "erlaubt": ["politik", "wirtschaft", "inland", "ausland"],
+  "gesperrt": ["sport", "kultur", "panorama"]
+}
+```
+
+Leere Listen bedeuten „Vorgaben aus `briefing/rubriken.py` verwenden“. Ein
+einzelner Lauf ohne Filter: `--ohne-rubrikfilter`.
+
+Wie viele Einträge aussortiert wurden, steht in der Spalte **Gefiltert** der
+Statustabelle und im Log jedes Laufs — eine Quelle, die nach dem Filter leer
+bleibt, meldet das im Klartext statt einfach zu verschwinden.
 
 Weitere ORF-Feeds folgen dem gleichen Muster, z. B. `https://rss.orf.at/help.xml`
 oder für Bundesländer `https://<land>.orf.at/stories/rss`. Ob ein Feed
@@ -166,11 +229,12 @@ funktioniert, steht nach dem nächsten Lauf in der Statustabelle.
 python3 -m unittest discover -s tests -v
 ```
 
-35 Tests, keine Netzwerkzugriffe: Parser für RDF/RSS 2.0/Atom, Datums- und
+55 Tests, keine Netzwerkzugriffe: Parser für RDF/RSS 2.0/Atom, Datums- und
 Link-Ermittlung, Deduplizierung, Fehlerstatus, Rendering (5 sichtbar +
 Aufklapper, Übersetzungsreihenfolge, HTML-Maskierung), Konfigurationsprüfung,
-Übersetzung mit Stub-Client (Structured Outputs, Cache, Verhalten ohne API-Key)
-sowie der Website-Modus (Archiv-Aufräumen, Manifest, Service Worker).
+Übersetzung mit Stub-Client (Structured Outputs, Cache, Verhalten ohne API-Key),
+Website-Modus (Archiv-Aufräumen, Manifest, Service Worker) sowie der
+Rubrikfilter (Kategorien, `dc:subject`, Pfad-Signale, Sperr- vor Erlaubt-Liste).
 Dieselben Tests laufen im Workflow vor jedem Veröffentlichen.
 
 ## Aufbau

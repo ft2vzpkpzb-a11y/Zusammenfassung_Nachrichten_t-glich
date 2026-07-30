@@ -1,0 +1,46 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<rdf:RDF xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#"
+         xmlns="http://purl.org/rss/1.0/"
+         xmlns:dc="http://purl.org/dc/elements/1.1/">
+  <channel rdf:about="https://rss.orf.at/news.xml">
+    <title>news.ORF.at</title>
+    <link>https://orf.at/</link>
+    <description>Gemischter Testfeed mit mehreren Ressorts</description>
+  </channel>
+  <item rdf:about="https://orf.at/stories/3400001/">
+    <title>Nationalrat beschließt Testgesetz</title>
+    <link>https://orf.at/stories/3400001/</link>
+    <dc:date>2026-07-30T08:00:00+02:00</dc:date>
+    <dc:subject>Inland</dc:subject>
+  </item>
+  <item rdf:about="https://orf.at/stories/3400002/">
+    <title>Musterkonzern meldet Quartalszahlen</title>
+    <link>https://orf.at/stories/3400002/</link>
+    <dc:date>2026-07-30T07:30:00+02:00</dc:date>
+    <dc:subject>Wirtschaft</dc:subject>
+  </item>
+  <item rdf:about="https://orf.at/stories/3400003/">
+    <title>Testteam gewinnt Beispielspiel</title>
+    <link>https://orf.at/stories/3400003/</link>
+    <dc:date>2026-07-30T07:00:00+02:00</dc:date>
+    <dc:subject>Sport</dc:subject>
+  </item>
+  <item rdf:about="https://orf.at/stories/3400004/">
+    <title>Musterfestspiele eröffnen Saison</title>
+    <link>https://orf.at/stories/3400004/</link>
+    <dc:date>2026-07-30T06:30:00+02:00</dc:date>
+    <dc:subject>Kultur</dc:subject>
+  </item>
+  <item rdf:about="https://orf.at/stories/3400005/">
+    <title>Beispielgipfel in Brüssel vertagt</title>
+    <link>https://orf.at/stories/3400005/</link>
+    <dc:date>2026-07-30T06:00:00+02:00</dc:date>
+    <dc:subject>Ausland</dc:subject>
+  </item>
+  <item rdf:about="https://orf.at/stories/3400006/">
+    <title>Streit über Sportbudget im Testausschuss</title>
+    <link>https://orf.at/stories/3400006/</link>
+    <dc:date>2026-07-30T05:30:00+02:00</dc:date>
+    <dc:subject>Inland</dc:subject>
+  </item>
+</rdf:RDF>

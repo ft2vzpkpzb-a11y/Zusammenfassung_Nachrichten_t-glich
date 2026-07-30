@@ -1,9 +1,15 @@
 {
   "titel": "Tägliche Nachrichten-Zusammenfassung",
-  "untertitel": "Alle Schlagzeilen des Tages auf einen Blick",
+  "untertitel": "Politik & Wirtschaft auf einen Blick",
   "zeitzone": "Europe/Vienna",
   "sichtbare_schlagzeilen": 5,
   "max_schlagzeilen_pro_quelle": 80,
+  "rubrikfilter": {
+    "aktiv": true,
+    "_hinweis": "Leere Listen bedeuten: Vorgaben aus briefing/rubriken.py verwenden.",
+    "erlaubt": [],
+    "gesperrt": []
+  },
   "uebersetzung": {
     "aktiv": true,
     "modell": "claude-opus-5",
@@ -19,10 +25,9 @@
       "sprache": "de",
       "farbe": "#c8102e",
       "webseite": "https://orf.at",
-      "uebersetzen": false,
+      "hinweis": "ORF bietet keine Ressort-Feeds — gefiltert wird über <dc:subject> (Inland, Ausland, Wirtschaft).",
       "feeds": [
-        "https://rss.orf.at/news.xml",
-        "https://rss.orf.at/science.xml"
+        "https://rss.orf.at/news.xml"
       ]
     },
     {
@@ -32,9 +37,34 @@
       "sprache": "de",
       "farbe": "#00639f",
       "webseite": "https://www.derstandard.at",
-      "uebersetzen": false,
       "feeds": [
-        "https://www.derstandard.at/rss"
+        "https://www.derstandard.at/rss/inland",
+        "https://www.derstandard.at/rss/international",
+        "https://www.derstandard.at/rss/wirtschaft"
+      ]
+    },
+    {
+      "id": "presse",
+      "name": "Die Presse",
+      "kategorie": "Österreich",
+      "sprache": "de",
+      "farbe": "#1a1a1a",
+      "webseite": "https://www.diepresse.com",
+      "feeds": [
+        "https://www.diepresse.com/rss/Politik",
+        "https://www.diepresse.com/rss/Wirtschaft"
+      ]
+    },
+    {
+      "id": "apa",
+      "name": "APA-OTS",
+      "kategorie": "Österreich",
+      "sprache": "de",
+      "farbe": "#005ca9",
+      "webseite": "https://www.ots.at",
+      "hinweis": "Der redaktionelle APA-Basisdienst ist kostenpflichtig und hat keinen öffentlichen Feed. Öffentlich zugänglich sind die Aussendungen über APA-OTS (Ministerien, Parteien, Unternehmen).",
+      "feeds": [
+        "https://www.ots.at/rss/aktuell"
       ]
     },
     {
@@ -44,9 +74,10 @@
       "sprache": "de",
       "farbe": "#1a4d8f",
       "webseite": "https://www.tagesschau.de",
-      "uebersetzen": false,
       "feeds": [
-        "https://www.tagesschau.de/xml/rss2"
+        "https://www.tagesschau.de/inland/index~rss2.xml",
+        "https://www.tagesschau.de/ausland/index~rss2.xml",
+        "https://www.tagesschau.de/wirtschaft/index~rss2.xml"
       ]
     },
     {
@@ -56,9 +87,9 @@
       "sprache": "de",
       "farbe": "#e64415",
       "webseite": "https://www.spiegel.de",
-      "uebersetzen": false,
       "feeds": [
-        "https://www.spiegel.de/schlagzeilen/tops/index.rss"
+        "https://www.spiegel.de/politik/index.rss",
+        "https://www.spiegel.de/wirtschaft/index.rss"
       ]
     },
     {
@@ -68,9 +99,9 @@
       "sprache": "de",
       "farbe": "#1c1c1c",
       "webseite": "https://www.zeit.de",
-      "uebersetzen": false,
       "feeds": [
-        "https://newsfeed.zeit.de/index"
+        "https://newsfeed.zeit.de/politik/index",
+        "https://newsfeed.zeit.de/wirtschaft/index"
       ]
     },
     {
@@ -83,6 +114,8 @@
       "uebersetzen": true,
       "hervorheben": true,
       "alle_anzeigen": true,
+      "rubriken_filtern": false,
+      "hinweis": "Vollständig, ohne Rubrikfilter — auf Deutsch übersetzt.",
       "feeds": [
         "https://www.ft.com/rss/home",
         "https://www.ft.com/rss/world",
@@ -96,9 +129,9 @@
       "sprache": "en",
       "farbe": "#bb1919",
       "webseite": "https://www.bbc.com/news",
-      "uebersetzen": false,
       "feeds": [
-        "https://feeds.bbci.co.uk/news/world/rss.xml"
+        "https://feeds.bbci.co.uk/news/politics/rss.xml",
+        "https://feeds.bbci.co.uk/news/business/rss.xml"
       ]
     },
     {
@@ -108,9 +141,9 @@
       "sprache": "en",
       "farbe": "#052962",
       "webseite": "https://www.theguardian.com",
-      "uebersetzen": false,
       "feeds": [
-        "https://www.theguardian.com/world/rss"
+        "https://www.theguardian.com/politics/rss",
+        "https://www.theguardian.com/business/rss"
       ]
     }
   ]

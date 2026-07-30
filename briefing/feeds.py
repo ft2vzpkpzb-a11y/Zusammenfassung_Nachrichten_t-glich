@@ -6,6 +6,8 @@ import json
 from dataclasses import dataclass, field
 from pathlib import Path
 
+from .rubriken import ERLAUBT, GESPERRT, Rubrikfilter
+
 
 @dataclass
 class Quelle:
@@ -21,6 +23,8 @@ class Quelle:
     uebersetzen: bool = False
     hervorheben: bool = False
     alle_anzeigen: bool = False
+    rubriken_filtern: bool = True
+    hinweis: str = ""
 
 
 @dataclass
@@ -40,6 +44,7 @@ class Konfiguration:
     sichtbare_schlagzeilen: int = 5
     max_schlagzeilen_pro_quelle: int = 80
     uebersetzung: Uebersetzungsoptionen = field(default_factory=Uebersetzungsoptionen)
+    rubrikfilter: Rubrikfilter = field(default_factory=Rubrikfilter)
     quellen: list[Quelle] = field(default_factory=list)
 
 
@@ -68,6 +73,8 @@ def lade_konfiguration(pfad: str | Path) -> Konfiguration:
                 uebersetzen=bool(eintrag.get("uebersetzen", False)),
                 hervorheben=bool(eintrag.get("hervorheben", False)),
                 alle_anzeigen=bool(eintrag.get("alle_anzeigen", False)),
+                rubriken_filtern=bool(eintrag.get("rubriken_filtern", True)),
+                hinweis=eintrag.get("hinweis", ""),
             )
         )
 
@@ -75,6 +82,7 @@ def lade_konfiguration(pfad: str | Path) -> Konfiguration:
         raise ValueError("Die Konfiguration enthält keine Quellen.")
 
     u = rohdaten.get("uebersetzung", {})
+    r = rohdaten.get("rubrikfilter", {})
     return Konfiguration(
         titel=rohdaten.get("titel", "Tägliche Nachrichten-Zusammenfassung"),
         untertitel=rohdaten.get("untertitel", ""),
@@ -87,6 +95,12 @@ def lade_konfiguration(pfad: str | Path) -> Konfiguration:
             zielsprache=u.get("zielsprache", "Deutsch"),
             batch_groesse=int(u.get("batch_groesse", 25)),
             cache_datei=u.get("cache_datei", "cache/uebersetzungen.json"),
+        ),
+        rubrikfilter=Rubrikfilter(
+            aktiv=bool(r.get("aktiv", True)),
+            # Ohne eigene Listen gelten die Vorgaben aus briefing/rubriken.py.
+            erlaubt=list(r.get("erlaubt") or ERLAUBT),
+            gesperrt=list(r.get("gesperrt") or GESPERRT),
         ),
         quellen=quellen,
     )

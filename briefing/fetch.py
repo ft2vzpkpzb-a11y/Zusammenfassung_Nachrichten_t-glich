@@ -25,6 +25,8 @@ from email.utils import parsedate_to_datetime
 from html import unescape
 from xml.etree import ElementTree as ET
 
+from . import rubriken
+
 BENUTZER_AGENT = (
     "Mozilla/5.0 (compatible; NachrichtenBriefing/2.0; "
     "+https://github.com/ft2vzpkpzb-a11y/Zusammenfassung_Nachrichten_t-glich)"
@@ -42,6 +44,7 @@ class Schlagzeile:
     zusammenfassung: str = ""
     quelle_id: str = ""
     uebersetzung: str = ""
+    kategorien: list[str] = field(default_factory=list)
 
     @property
     def sortierschluessel(self) -> datetime:
@@ -60,6 +63,8 @@ class FeedStatus:
     format: str = "unbekannt"
     fehler: str = ""
     dauer_ms: int = 0
+    gefiltert: int = 0  # vom Rubrikfilter aussortierte Einträge
+    rubriken: list[str] = field(default_factory=list)  # gefundene Ressorts
 
 
 @dataclass
@@ -95,6 +100,21 @@ def _kind(eintrag: ET.Element, *namen: str) -> ET.Element | None:
         if _lokaler_name(kind.tag) in gesucht:
             return kind
     return None
+
+
+def _extrahiere_kategorien(eintrag: ET.Element) -> list[str]:
+    """Ressorts einsammeln: <category> (RSS/Atom) und <dc:subject> (RSS 1.0)."""
+    gefunden: list[str] = []
+    for kind in eintrag:
+        name = _lokaler_name(kind.tag)
+        if name not in {"category", "subject"}:
+            continue
+        # Atom schreibt das Ressort ins Attribut, RSS in den Text.
+        wert = kind.attrib.get("term") or (kind.text or "")
+        wert = unescape(wert).strip()
+        if wert and wert not in gefunden:
+            gefunden.append(wert)
+    return gefunden
 
 
 def _extrahiere_link(eintrag: ET.Element) -> str:
@@ -190,6 +210,7 @@ def parse_feed(rohdaten: bytes, quelle_id: str = "") -> tuple[list[Schlagzeile],
                     _text(_kind(element, "description", "summary")).split()
                 )[:400],
                 quelle_id=quelle_id,
+                kategorien=_extrahiere_kategorien(element),
             )
         )
     return schlagzeilen, format_name
@@ -229,10 +250,17 @@ def hole_quelle(
     quelle,
     max_schlagzeilen: int = 80,
     timeout: int = 20,
+    rubrikfilter=None,
 ) -> QuellenErgebnis:
-    """Alle Feeds einer Quelle abrufen, zusammenführen und deduplizieren."""
+    """Alle Feeds einer Quelle abrufen, zusammenführen und deduplizieren.
+
+    ``rubrikfilter`` grenzt auf bestimmte Ressorts ein (Standard: Politik und
+    Wirtschaft). Quellen mit ``rubriken_filtern: false`` — etwa die Financial
+    Times — bleiben davon unberührt.
+    """
     ergebnis = QuellenErgebnis(quelle_id=quelle.id)
     gesehen: set[str] = set()
+    filtern = rubrikfilter is not None and rubrikfilter.aktiv and quelle.rubriken_filtern
 
     for url in quelle.feeds:
         start = time.monotonic()
@@ -263,13 +291,32 @@ def hole_quelle(
             continue
 
         neue = 0
+        aussortiert = 0
+        gefundene_rubriken: list[str] = []
         for schlagzeile in schlagzeilen:
+            for rubrik in schlagzeile.kategorien:
+                if rubrik not in gefundene_rubriken:
+                    gefundene_rubriken.append(rubrik)
+
+            if filtern and not rubrikfilter.passt(rubriken.signale(schlagzeile, url)):
+                aussortiert += 1
+                continue
+
             schluessel = schlagzeile.link or schlagzeile.titel.lower()
             if schluessel in gesehen:
                 continue
             gesehen.add(schluessel)
             ergebnis.schlagzeilen.append(schlagzeile)
             neue += 1
+
+        if not schlagzeilen:
+            hinweis = "Feed gelesen, aber ohne Einträge"
+        elif filtern and neue == 0:
+            # Nicht als Netzwerkfehler ausgeben: der Feed war in Ordnung,
+            # nur passte nichts zu Politik/Wirtschaft.
+            hinweis = f"{aussortiert} Einträge, keiner in Politik/Wirtschaft"
+        else:
+            hinweis = ""
 
         ergebnis.status.append(
             FeedStatus(
@@ -281,8 +328,10 @@ def hole_quelle(
                 ok=bool(schlagzeilen),
                 anzahl=neue,
                 format=format_name,
-                fehler="" if schlagzeilen else "Feed gelesen, aber ohne Einträge",
+                fehler=hinweis,
                 dauer_ms=int((time.monotonic() - start) * 1000),
+                gefiltert=aussortiert,
+                rubriken=gefundene_rubriken[:12],
             )
         )
 
