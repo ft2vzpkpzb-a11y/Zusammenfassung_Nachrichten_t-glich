@@ -188,6 +188,32 @@ python3 generate_briefing.py --pruefe --quelle presse     # nur eine
 Die Ausgabe zeigt je Feed Status, Format, Anzahl, die im Feed vorkommenden
 Ressorts und wie viele Einträge nach dem Rubrikfilter übrig bleiben.
 
+Dasselbe läuft automatisch: **Actions → „Feeds prüfen"** startet bei jeder
+Änderung an der Feed-Konfiguration, wöchentlich montags und auf Knopfdruck.
+Damit fällt ein umgezogener Feed auf, bevor er im Briefing als leere Karte
+auffällt.
+
+### Zuletzt geprüfter Stand (30.07.2026, GitHub-Runner)
+
+Alle Feeds abgerufen, alle liefern; Zahlen sind Einträge im Feed / davon nach
+dem Rubrikfilter:
+
+| Quelle | Feeds | Einträge → nach Filter |
+|---|---|---|
+| ORF.at | `news.xml` | 26 → gefiltert über `dc:subject` (Inland, Ausland, Wirtschaft; Umwelt/Chronik/Kultur raus) |
+| DER STANDARD | inland, international, wirtschaft | 32 / 31 / 32 → vollständig |
+| Die Presse | Politik, Wirtschaft | 10 / 53 → vollständig |
+| APA-OTS | politik, wirtschaft | 15 / 15 → vollständig |
+| tagesschau | inland, ausland, wirtschaft | 49 / 65 / 44 → vollständig |
+| SPIEGEL | politik, wirtschaft | 20 / 20 → vollständig |
+| ZEIT ONLINE | politik, wirtschaft | 15 / 13 → vollständig |
+| Financial Times | home, world, companies | 10 / 25 / 25 → ohne Filter |
+| BBC News | politics, business | 69 / 48 → vollständig |
+| The Guardian | politics, business | 21 / 20 → vollständig |
+
+„Vollständig" heißt: Es sind Ressort-Feeds, deren Adresse das Ressort bereits
+nennt — der Filter greift dort nicht mehr in die einzelnen Einträge ein.
+
 ### Zur APA
 
 Der redaktionelle **APA-Basisdienst** (die eigentliche Nachrichtenagentur) ist
