@@ -201,7 +201,7 @@ Dasselbe läuft automatisch: **Actions → „Feeds prüfen"** startet bei jeder
 Damit fällt ein umgezogener Feed auf, bevor er im Briefing als leere Karte
 auffällt.
 
-### Zuletzt geprüfter Stand (30.07.2026, GitHub-Runner)
+### Zuletzt geprüfter Stand (06.08.2026, GitHub-Runner)
 
 Alle Feeds abgerufen, alle liefern; Zahlen sind Einträge im Feed / davon nach
 dem Rubrikfilter:
@@ -215,12 +215,19 @@ dem Rubrikfilter:
 | tagesschau | inland, ausland, wirtschaft | 49 / 65 / 44 → vollständig |
 | SPIEGEL | politik, wirtschaft | 20 / 20 → vollständig |
 | ZEIT ONLINE | politik, wirtschaft | 15 / 13 → vollständig |
-| Financial Times | home, world, companies | 10 / 25 / 25 → ohne Filter |
-| BBC News | politics, business | 69 / 48 → vollständig |
+| Financial Times | home, world, companies | 8 / 25 / 25 → ohne Filter |
+| The Wall Street Journal | World News, US Business, Markets | 20 / 20 / 20 → vollständig |
+| Bloomberg | politics, economics, markets | 20 / 20 / 20 → vollständig |
+| BBC News | politics, business | 68 / 54 → vollständig |
 | The Guardian | politics, business | 21 / 20 → vollständig |
 
 „Vollständig" heißt: Es sind Ressort-Feeds, deren Adresse das Ressort bereits
 nennt — der Filter greift dort nicht mehr in die einzelnen Einträge ein.
+
+> WSJ und Bloomberg sind weitgehend kostenpflichtig. Die Schlagzeilen stehen
+> frei im Feed, der verlinkte Artikel führt aber oft auf eine Bezahlschranke.
+> Übersetzt werden sie nicht — wer das möchte, setzt bei der Quelle
+> `"uebersetzen": true` (kostet dann API-Aufrufe wie bei der FT).
 
 ### Zur APA
 
