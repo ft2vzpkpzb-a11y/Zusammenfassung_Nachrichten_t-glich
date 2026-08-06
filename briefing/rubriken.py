@@ -23,7 +23,7 @@ from urllib.parse import urlsplit
 ERLAUBT = [
     "politik", "politics", "inland", "ausland", "international", "europa", "eu",
     "aussenpolitik", "innenpolitik", "weltpolitik", "world", "uk-news",
-    "wirtschaft", "economy", "business", "konjunktur", "unternehmen", "companies",
+    "wirtschaft", "economy", "economics", "business", "konjunktur", "unternehmen", "companies",
     "finanzen", "finance", "boerse", "markt", "maerkte", "markets", "geld",
     "budget", "steuern", "arbeitsmarkt", "industrie", "handel", "immobilien",
 ]

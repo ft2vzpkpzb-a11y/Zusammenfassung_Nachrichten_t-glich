@@ -252,7 +252,7 @@ def main() -> int:
         markierung = "ok  " if ergebnis.ok and anzahl else "FEHL"
         aussortiert = sum(s.gefiltert for s in ergebnis.status)
         zusatz = f"  ({aussortiert} andere Ressorts aussortiert)" if aussortiert else ""
-        print(f"[{markierung}] {quelle.name:<18} {anzahl:>4} Schlagzeilen{zusatz}")
+        print(f"[{markierung}] {quelle.name:<24} {anzahl:>4} Schlagzeilen{zusatz}")
         if not (ergebnis.ok and anzahl):
             probleme.extend(f"    {quelle.name}: {m}" for m in ergebnis.fehlermeldungen)
 
