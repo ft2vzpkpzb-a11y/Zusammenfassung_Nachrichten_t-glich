@@ -12,9 +12,9 @@ python3 generate_briefing.py --site docs # Website bauen (index.html + Archiv + 
 
 ## Täglich am Handy
 
-GitHub Actions baut das Briefing jeden Morgen, GitHub Pages liefert es aus, am
-Handy landet es als App auf dem Startbildschirm. Kein Server, keine laufenden
-Kosten. Drei einmalige Schritte:
+GitHub Actions baut das Briefing dreimal täglich (05:00, 13:00, 21:00 Wiener
+Zeit), GitHub Pages liefert es aus, am Handy landet es als App auf dem
+Startbildschirm. Kein Server, keine laufenden Kosten. Drei einmalige Schritte:
 
 1. **Branch nach `main` mergen.** Geplante Workflows startet GitHub nur vom
    Standard-Branch — solange der Workflow nicht auf `main` liegt, läuft nichts.
@@ -46,10 +46,17 @@ Was am Handy sonst noch anders ist:
 - Die Werkzeugleiste klebt am Handy nicht oben fest, der Druckknopf ist
   ausgeblendet, und ein runder Knopf unten rechts springt zurück nach oben.
 
-Den Zeitpunkt ändern: `cron` in `.github/workflows/briefing.yml` (UTC, also
-`0 5 * * *` = 07:00 Wiener Zeit im Sommer). Ein zweiter Lauf am Abend ist einfach
-eine zweite `- cron:`-Zeile. Über *Actions* → *Briefing bauen* → *Run workflow*
-lässt sich jederzeit von Hand nachbauen.
+**Die Zeiten ändern:** in `.github/workflows/briefing.yml`. GitHub kennt nur UTC
+und keine Sommerzeit — deshalb stehen dort zwei `cron`-Zeilen (eine je
+Zeitumstellung), und der erste Schritt des Jobs lässt nur die Läufe durch, die
+auf 05:00, 13:00 oder 21:00 Wiener Zeit fallen. Für andere Zeiten beide
+`cron`-Zeilen **und** die Stundenliste im Schritt „Zielzeit prüfen" anpassen.
+Über *Actions* → *Briefing bauen* → *Run workflow* lässt sich jederzeit von Hand
+nachbauen — ein solcher Lauf wird nie übersprungen.
+
+> Geplante Läufe startet GitHub je nach Auslastung ein paar Minuten später.
+> Verzögert sich einer um mehr als eine Stunde, fällt er aus dem Zeitfenster und
+> wird übersprungen; der nächste Lauf acht Stunden später baut wieder.
 
 > **Zur Sichtbarkeit:** Das Repo ist öffentlich, die Pages-Seite ist damit für
 > jeden erreichbar, der die Adresse kennt. Inhalt sind ausschließlich
@@ -64,7 +71,8 @@ lässt sich jederzeit von Hand nachbauen.
 |---|---|
 | **Erste fünf offen** | Je Quelle sind die fünf aktuellsten Schlagzeilen sichtbar; der Rest (auch 50+) steckt in einem Aufklapper und ist einen Klick entfernt. Über `sichtbare_schlagzeilen` einstellbar. |
 | **Politik & Wirtschaft** | Alle Quellen außer der FT sind auf diese beiden Ressorts eingegrenzt — über Feed-Kategorien, `dc:subject` und den Link-Pfad. Siehe [Nur Politik & Wirtschaft](#nur-politik--wirtschaft). |
-| **Quellen** | ORF.at, DER STANDARD, Die Presse, APA-OTS, tagesschau, SPIEGEL, ZEIT ONLINE, Financial Times, BBC News, The Guardian |
+| **Quellen** | ORF.at, DER STANDARD, Die Presse, APA-OTS, tagesschau, SPIEGEL, ZEIT ONLINE, Financial Times, The Wall Street Journal, Bloomberg, BBC News, The Guardian |
+| **Dreimal täglich** | Der Workflow baut um **05:00, 13:00 und 21:00** Wiener Zeit (alle acht Stunden). |
 | **Financial Times komplett** | Die FT wird aus drei Feeds (Home, World, Companies) zusammengeführt, dedupliziert und als hervorgehobene Karte oben angezeigt — deutsche Übersetzung als Haupttitel, englisches Original klein darunter. |
 | **Übersetzung** | Über die Claude Messages API (`claude-opus-5`, Structured Outputs). Ergebnisse landen im Cache, ein zweiter Lauf am selben Tag kostet nichts. Ohne API-Key erscheinen die Schlagzeilen im Original — das Briefing bricht nicht ab. |
 | **Feed-Status** | Unten steht je Feed: Status, erkanntes Format, Anzahl Einträge, Dauer. Eine leere Quelle wird als Fehler angezeigt statt still zu verschwinden. |
@@ -276,7 +284,7 @@ funktioniert, steht nach dem nächsten Lauf in der Statustabelle.
 python3 -m unittest discover -s tests -v
 ```
 
-65 Tests, keine Netzwerkzugriffe: Parser für RDF/RSS 2.0/Atom, Datums- und
+70 Tests, keine Netzwerkzugriffe: Parser für RDF/RSS 2.0/Atom, Datums- und
 Link-Ermittlung, Deduplizierung, Fehlerstatus, Rendering (5 sichtbar +
 Aufklapper, Übersetzungsreihenfolge, HTML-Maskierung), Konfigurationsprüfung,
 Übersetzung mit Stub-Client (Structured Outputs, Cache, Verhalten ohne API-Key),

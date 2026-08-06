@@ -148,6 +148,50 @@
       ]
     },
     {
+      "id": "wsj",
+      "name": "The Wall Street Journal",
+      "kategorie": "International",
+      "sprache": "en",
+      "farbe": "#0274b6",
+      "webseite": "https://www.wsj.com",
+      "feeds": [
+        {
+          "url": "https://feeds.a.dj.com/rss/RSSWorldNews.xml",
+          "alternativen": ["https://feeds.a.dj.com/rss/RSSWorldNews"]
+        },
+        {
+          "url": "https://feeds.a.dj.com/rss/WSJcomUSBusiness.xml",
+          "alternativen": ["https://feeds.a.dj.com/rss/WSJcomUSBusiness"]
+        },
+        {
+          "url": "https://feeds.a.dj.com/rss/RSSMarketsMain.xml",
+          "alternativen": ["https://feeds.a.dj.com/rss/RSSMarketsMain"]
+        }
+      ]
+    },
+    {
+      "id": "bloomberg",
+      "name": "Bloomberg",
+      "kategorie": "International",
+      "sprache": "en",
+      "farbe": "#b45309",
+      "webseite": "https://www.bloomberg.com",
+      "feeds": [
+        {
+          "url": "https://feeds.bloomberg.com/politics/news.rss",
+          "alternativen": ["https://www.bloomberg.com/politics/feeds/site.xml"]
+        },
+        {
+          "url": "https://feeds.bloomberg.com/economics/news.rss",
+          "alternativen": ["https://www.bloomberg.com/economics/feeds/site.xml"]
+        },
+        {
+          "url": "https://feeds.bloomberg.com/markets/news.rss",
+          "alternativen": ["https://www.bloomberg.com/markets/feeds/site.xml"]
+        }
+      ]
+    },
+    {
       "id": "bbc",
       "name": "BBC News",
       "kategorie": "International",

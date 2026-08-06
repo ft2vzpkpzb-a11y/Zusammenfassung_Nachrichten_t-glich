@@ -2,9 +2,12 @@ name: Briefing bauen
 
 on:
   schedule:
-    # 05:00 UTC = 07:00 Wien (Sommerzeit) bzw. 06:00 (Winterzeit).
-    # GitHub startet geplante Läufe je nach Auslastung ein paar Minuten später.
-    - cron: "0 5 * * *"
+    # Ziel: alle acht Stunden — 05:00, 13:00 und 21:00 Wiener Zeit.
+    # GitHub kennt nur UTC und keine Sommerzeit, deshalb stehen hier beide
+    # Umrechnungen. Der erste Schritt im Job lässt nur die Läufe durch, die
+    # tatsächlich auf die Zielstunde fallen.
+    - cron: "0 3,11,19 * * *" # Sommerzeit (MESZ = UTC+2)
+    - cron: "0 4,12,20 * * *" # Winterzeit (MEZ = UTC+1)
   workflow_dispatch: # Knopf „Run workflow“ im Actions-Tab
   push:
     branches: [main]
@@ -25,16 +28,39 @@ jobs:
   bauen:
     runs-on: ubuntu-latest
     steps:
+      - name: Zielzeit prüfen
+        id: zeit
+        run: |
+          stunde=$(TZ=Europe/Vienna date +%H)
+          echo "Wiener Zeit: $(TZ=Europe/Vienna date '+%d.%m.%Y %H:%M')"
+          if [ "${{ github.event_name }}" != "schedule" ]; then
+            echo "Kein geplanter Lauf — wird gebaut."
+            exit 0
+          fi
+          case "$stunde" in
+            05 | 13 | 21)
+              echo "Zielstunde erreicht — wird gebaut."
+              ;;
+            *)
+              echo "Dieser Lauf gehört zur anderen Zeitzonen-Zeile — übersprungen."
+              echo "ueberspringen=true" >>"$GITHUB_OUTPUT"
+              ;;
+          esac
+
       - uses: actions/checkout@v4
+        if: steps.zeit.outputs.ueberspringen != 'true'
 
       - uses: actions/setup-python@v5
+        if: steps.zeit.outputs.ueberspringen != 'true'
         with:
           python-version: "3.12"
 
       - name: Abhängigkeiten installieren
+        if: steps.zeit.outputs.ueberspringen != 'true'
         run: pip install -r requirements.txt
 
       - name: Übersetzungs-Cache laden
+        if: steps.zeit.outputs.ueberspringen != 'true'
         uses: actions/cache@v4
         with:
           path: cache
@@ -42,9 +68,11 @@ jobs:
           restore-keys: uebersetzungen-
 
       - name: Tests
+        if: steps.zeit.outputs.ueberspringen != 'true'
         run: python3 -m unittest discover -s tests
 
       - name: Briefing erzeugen
+        if: steps.zeit.outputs.ueberspringen != 'true'
         env:
           # Ohne dieses Secret bleiben die FT-Schlagzeilen englisch —
           # das Briefing wird trotzdem gebaut.
@@ -52,6 +80,7 @@ jobs:
         run: python3 generate_briefing.py --site docs --archiv-tage 30
 
       - name: Veröffentlichen
+        if: steps.zeit.outputs.ueberspringen != 'true'
         run: |
           git config user.name "briefing-bot"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
@@ -59,6 +88,8 @@ jobs:
           if git diff --quiet --cached; then
             echo "Keine Änderung — nichts zu veröffentlichen."
           else
-            git commit -m "Briefing $(date -u +%Y-%m-%d)"
+            git commit -m "Briefing $(TZ=Europe/Vienna date '+%Y-%m-%d %H:%M')"
+            # Zwischen Bauen und Pushen kann ein anderer Lauf committet haben.
+            git pull --rebase origin main
             git push
           fi

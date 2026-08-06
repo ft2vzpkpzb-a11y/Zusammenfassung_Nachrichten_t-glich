@@ -209,6 +209,12 @@ class TestKonfiguration(unittest.TestCase):
         self.assertIn("presse", ids)
         self.assertIn("apa", ids)
 
+    def test_international_enthaelt_ft_wsj_bloomberg(self):
+        konfiguration = lade_konfiguration(WURZEL / "config" / "feeds.json")
+        international = [q.id for q in konfiguration.quellen if q.kategorie == "International"]
+        for quelle_id in ("ft", "wsj", "bloomberg", "bbc", "guardian"):
+            self.assertIn(quelle_id, international)
+
     def test_nur_die_ft_ist_vom_filter_ausgenommen(self):
         konfiguration = lade_konfiguration(WURZEL / "config" / "feeds.json")
         self.assertTrue(konfiguration.rubrikfilter.aktiv)
