@@ -1,0 +1,44 @@
+name: Briefing zur Ansicht bauen
+
+# Baut das echte Briefing und hängt es als Download an den Lauf, ohne etwas
+# zu veröffentlichen. Gedacht zum Anschauen, solange der Branch noch nicht in
+# main gemergt oder GitHub Pages noch nicht eingeschaltet ist.
+
+on:
+  workflow_dispatch:
+  push:
+    branches-ignore: [main] # auf main übernimmt das der Veröffentlichungs-Workflow
+    paths:
+      - "briefing/**"
+      - "config/feeds.json"
+      - "generate_briefing.py"
+      - ".github/workflows/vorschau.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  bauen:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Abhängigkeiten installieren
+        run: pip install -r requirements.txt
+
+      - name: Briefing erzeugen
+        env:
+          # Fehlt das Secret, bleiben die FT-Schlagzeilen englisch.
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+        run: python3 generate_briefing.py --site vorschau
+
+      - name: Zum Herunterladen anhängen
+        uses: actions/upload-artifact@v4
+        with:
+          name: briefing-vorschau
+          path: vorschau
+          retention-days: 14
