@@ -16,55 +16,61 @@ jobs:
       - name: Quellen abfragen
         shell: python
         run: |
-          import json, urllib.request, urllib.error
+          import json, re, urllib.request, urllib.error
           UA = "Mozilla/5.0 (compatible; Nachrichten-Briefing/1.0; +https://github.com/ft2vzpkpzb-a11y/Zusammenfassung_Nachrichten_t-glich)"
 
-          def hole(url, body=None, n=1500, zeige=True):
+          def hole(url, body=None, n=1500, zeige=True, methode=None):
               daten = json.dumps(body).encode() if body is not None else None
-              req = urllib.request.Request(url, data=daten, headers={
+              req = urllib.request.Request(url, data=daten, method=methode, headers={
                   "User-Agent": UA, "Accept": "application/json, application/xml, text/xml, */*",
                   **({"Content-Type": "application/json"} if daten else {})})
-              print("\n=====", "POST" if daten else "GET", url, json.dumps(body) if body else "")
+              print("\n=====", methode or ("POST" if daten else "GET"), url)
               try:
                   with urllib.request.urlopen(req, timeout=30) as r:
                       roh = r.read()
-                      print("status", r.status, "| type", r.headers.get("Content-Type"), "| len", len(roh),
-                            "| ratelimit", r.headers.get("X-RateLimit-Remaining"))
+                      print("status", r.status, "| type", r.headers.get("Content-Type"), "| len", len(roh))
                       text = roh.decode("utf-8", "replace")
                       if zeige: print(text[:n])
                       return text
               except urllib.error.HTTPError as e:
-                  print("HTTP", e.code, e.read()[:300])
+                  print("HTTP", e.code)
               except Exception as e:
                   print("FEHLER", repr(e))
 
-          FILTER = "https://www.parlament.gv.at/Filter/api/filter/data/101?js=eval&showAll=true"
-          for body in ({"NRBR": ["NR"], "GP_CODE": ["XXVIII"], "VHG": ["BNR"]},
-                       {"NRBR": ["BR"], "GP_CODE": ["XXVIII"], "VHG": ["BNR"]}):
-              t = hole(FILTER, body, zeige=False)
-              if not t: continue
-              try:
-                  d = json.loads(t)
-              except Exception as e:
-                  print("kein JSON", e, t[:800]); continue
-              print("keys", list(d)[:20], "count", d.get("count"), "pages", d.get("pages"))
-              print("header", json.dumps(d.get("header"), ensure_ascii=False)[:2500])
-              rows = d.get("rows") or []
-              print("rows", len(rows))
-              for r in rows[:4]: print(" ROW", json.dumps(r, ensure_ascii=False)[:900])
-              for r in rows[-3:]: print(" END", json.dumps(r, ensure_ascii=False)[:900])
+          # --- Nationalrat: jüngste Beschlüsse ---
+          t = hole("https://www.parlament.gv.at/Filter/api/filter/data/101?js=eval&showAll=true",
+                   {"NRBR": ["NR"], "GP_CODE": ["XXVIII"], "VHG": ["BNR"]}, zeige=False)
+          d = json.loads(t)
+          print([h["label"] for h in d["header"]])
+          zeilen = sorted(d["rows"], key=lambda r: r[8] or "", reverse=True)
+          for r in zeilen[:25]:
+              print(r[1], r[4], r[7], "|", r[6][:90], "|", r[14], "|", r[22])
+          from collections import Counter
+          print("Sitzungstage:", Counter(r[4] for r in zeilen if r[1] == "BNR").most_common(12))
 
-          hole("https://www.parlament.gv.at/gegenstand/XXVIII/BNR/207?json=true", n=6000)
-          hole("https://www.parlament.gv.at/gegenstand/XXVIII/BNR/207", n=400)
+          # Bezugs-Regierungsvorlage: gibt es dort ein Abstimmungsergebnis?
+          j = hole("https://www.parlament.gv.at/gegenstand/XXVIII/I/539?json=true", zeige=False)
+          if j:
+              dj = json.loads(j)
+              c = dj.get("content", {})
+              print("keys", list(c))
+              print("stages", json.dumps(c.get("stages"), ensure_ascii=False)[:4000])
+              for k in c:
+                  s = json.dumps(c[k], ensure_ascii=False)
+                  if re.search(r"(?i)abstimm|dafür|dagegen|einstimmig|mehrheit", s):
+                      print("TREFFER in", k, s[:3000])
 
-          hole("https://www.senate.gov/legislative/LIS/roll_call_lists/vote_menu_119_2.xml", n=2500)
-          hole("https://clerk.house.gov/evs/2026/index.asp", n=2500)
-          hole("https://clerk.house.gov/evs/2026/roll001.xml", n=2500)
-          hole("https://www.congress.gov/rss/presented-to-president.xml", n=1500)
-          hole("https://www.govinfo.gov/rss/plaw.xml", n=2000)
-          hole("https://www.govinfo.gov/rss/bills-enr.xml", n=2000)
-          K = "api_key=DEMO_KEY&format=json"
-          hole(f"https://api.congress.gov/v3/bill?{K}&limit=3&sort=updateDate+desc", n=2500)
-          hole(f"https://api.congress.gov/v3/house-vote/119/2?{K}&limit=3", n=2500)
-          hole(f"https://api.congress.gov/v3/law/119?{K}&limit=3", n=2000)
-          hole("https://www.govtrack.us/api/v2/vote?congress=119&order_by=-created&limit=3", n=2500)
+          # --- House: wie findet man die jüngste Abstimmung ohne Schlüssel? ---
+          hole("https://clerk.house.gov/Votes", n=200, zeige=False)
+          v = hole("https://clerk.house.gov/Votes", zeige=False) or ""
+          print(sorted(set(re.findall(r"/Votes/(\d{4}\d+)", v)))[-10:], re.findall(r"[Rr]oll [Cc]all[^<]{0,40}", v)[:5])
+          for n in (300, 314, 320, 340, 400):
+              hole(f"https://clerk.house.gov/evs/2026/roll{n:03d}.xml", zeige=False, methode="HEAD")
+          x = hole("https://clerk.house.gov/evs/2026/roll314.xml", zeige=False) or ""
+          print(x[:1200])
+
+          # --- congress.gov RSS ---
+          r = hole("https://www.congress.gov/rss", zeige=False) or ""
+          print(sorted(set(re.findall(r"https://www\.congress\.gov/rss/[\w\-/]+\.xml", r))))
+          for f in ("house-floor-today", "senate-floor-today", "presented-to-president"):
+              hole(f"https://www.congress.gov/rss/{f}.xml", n=2500)
