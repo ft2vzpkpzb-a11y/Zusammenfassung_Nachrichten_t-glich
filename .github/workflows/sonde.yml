@@ -1,0 +1,70 @@
+name: Sonde Gesetzgebung (temporär)
+
+on:
+  workflow_dispatch:
+  push:
+    branches-ignore: [main]
+    paths: [".github/workflows/sonde.yml"]
+
+permissions:
+  contents: read
+
+jobs:
+  sonde:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Quellen abfragen
+        shell: python
+        run: |
+          import json, urllib.request, urllib.error
+          UA = "Mozilla/5.0 (compatible; Nachrichten-Briefing/1.0; +https://github.com/ft2vzpkpzb-a11y/Zusammenfassung_Nachrichten_t-glich)"
+
+          def hole(url, body=None, n=1500, zeige=True):
+              daten = json.dumps(body).encode() if body is not None else None
+              req = urllib.request.Request(url, data=daten, headers={
+                  "User-Agent": UA, "Accept": "application/json, application/xml, text/xml, */*",
+                  **({"Content-Type": "application/json"} if daten else {})})
+              print("\n=====", "POST" if daten else "GET", url, json.dumps(body) if body else "")
+              try:
+                  with urllib.request.urlopen(req, timeout=30) as r:
+                      roh = r.read()
+                      print("status", r.status, "| type", r.headers.get("Content-Type"), "| len", len(roh),
+                            "| ratelimit", r.headers.get("X-RateLimit-Remaining"))
+                      text = roh.decode("utf-8", "replace")
+                      if zeige: print(text[:n])
+                      return text
+              except urllib.error.HTTPError as e:
+                  print("HTTP", e.code, e.read()[:300])
+              except Exception as e:
+                  print("FEHLER", repr(e))
+
+          FILTER = "https://www.parlament.gv.at/Filter/api/filter/data/101?js=eval&showAll=true"
+          for body in ({"NRBR": ["NR"], "GP_CODE": ["XXVIII"], "VHG": ["BNR"]},
+                       {"NRBR": ["BR"], "GP_CODE": ["XXVIII"], "VHG": ["BNR"]}):
+              t = hole(FILTER, body, zeige=False)
+              if not t: continue
+              try:
+                  d = json.loads(t)
+              except Exception as e:
+                  print("kein JSON", e, t[:800]); continue
+              print("keys", list(d)[:20], "count", d.get("count"), "pages", d.get("pages"))
+              print("header", json.dumps(d.get("header"), ensure_ascii=False)[:2500])
+              rows = d.get("rows") or []
+              print("rows", len(rows))
+              for r in rows[:4]: print(" ROW", json.dumps(r, ensure_ascii=False)[:900])
+              for r in rows[-3:]: print(" END", json.dumps(r, ensure_ascii=False)[:900])
+
+          hole("https://www.parlament.gv.at/gegenstand/XXVIII/BNR/207?json=true", n=6000)
+          hole("https://www.parlament.gv.at/gegenstand/XXVIII/BNR/207", n=400)
+
+          hole("https://www.senate.gov/legislative/LIS/roll_call_lists/vote_menu_119_2.xml", n=2500)
+          hole("https://clerk.house.gov/evs/2026/index.asp", n=2500)
+          hole("https://clerk.house.gov/evs/2026/roll001.xml", n=2500)
+          hole("https://www.congress.gov/rss/presented-to-president.xml", n=1500)
+          hole("https://www.govinfo.gov/rss/plaw.xml", n=2000)
+          hole("https://www.govinfo.gov/rss/bills-enr.xml", n=2000)
+          K = "api_key=DEMO_KEY&format=json"
+          hole(f"https://api.congress.gov/v3/bill?{K}&limit=3&sort=updateDate+desc", n=2500)
+          hole(f"https://api.congress.gov/v3/house-vote/119/2?{K}&limit=3", n=2500)
+          hole(f"https://api.congress.gov/v3/law/119?{K}&limit=3", n=2000)
+          hole("https://www.govtrack.us/api/v2/vote?congress=119&order_by=-created&limit=3", n=2500)
