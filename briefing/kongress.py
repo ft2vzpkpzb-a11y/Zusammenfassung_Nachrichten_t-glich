@@ -24,6 +24,7 @@ import os
 import re
 import time
 import urllib.error
+from concurrent.futures import ThreadPoolExecutor
 from datetime import date, datetime
 from html import unescape
 from pathlib import Path
@@ -213,28 +214,37 @@ def house_beschluss(kopf: dict, jahr: int, nummer: int) -> Beschluss | None:
     )
 
 
-def letzte_nummer(existiert, bekannt: int = 0, obergrenze: int = 3000) -> int:
-    """Jüngste vorhandene Abstimmungsnummer finden: erst galoppieren, dann halbieren.
+def letzte_nummer(existiert, bekannt: int = 0, obergrenze: int = 3000, parallel: int = 8) -> int:
+    """Jüngste vorhandene Abstimmungsnummer finden.
 
-    ``bekannt`` ist die Nummer vom letzten Lauf — damit reichen meist ein oder
-    zwei Abrufe. Ohne Anhaltspunkt sind es rund zwanzig.
+    Die Nummern sind lückenlos: bis zur jüngsten gibt es jede Datei, danach
+    keine. Gesucht wird in Runden mit ``parallel`` gleichzeitigen Abrufen —
+    jede Runde verkleinert den Suchbereich auf ein Achtel. Der Server braucht
+    pro Abruf bis zu zwei Sekunden; nacheinander wären es über eine halbe
+    Minute. ``bekannt`` ist die Nummer vom letzten Lauf: dann wird zuerst
+    knapp darüber gesucht und eine Runde reicht meist.
     """
     unten = bekannt if bekannt and existiert(bekannt) else 0
-    if not unten:
-        if not existiert(1):
-            return 0
-        unten = 1
-    schritt, oben = 1, unten + 1
-    while oben <= obergrenze and existiert(oben):
-        unten, schritt = oben, schritt * 2
-        oben = unten + schritt
-    oben = min(oben, obergrenze + 1)
+    oben = obergrenze + 1  # erste Nummer, die es sicher nicht gibt
+
+    def runde(punkte: list[int]) -> None:
+        nonlocal unten, oben
+        with ThreadPoolExecutor(max_workers=parallel) as pool:
+            vorhanden = dict(zip(punkte, pool.map(existiert, punkte)))
+        for punkt in sorted(punkte):
+            if vorhanden[punkt]:
+                unten = max(unten, punkt)
+            else:
+                oben = min(oben, punkt)
+                break
+
+    if unten:
+        # Seit dem letzten Lauf kamen meist nur wenige Abstimmungen dazu.
+        runde([p for p in (unten + 2**i for i in range(parallel)) if p < oben])
     while oben - unten > 1:
-        mitte = (unten + oben) // 2
-        if existiert(mitte):
-            unten = mitte
-        else:
-            oben = mitte
+        schritt = (oben - unten) / (parallel + 1)
+        punkte = sorted({unten + max(1, round(schritt * i)) for i in range(1, parallel + 1)} - {oben})
+        runde([p for p in punkte if unten < p < oben])
     return unten
 
 

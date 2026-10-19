@@ -10,8 +10,11 @@ Für jeden Beschluss im Zeitraum gibt es zwei Ergänzungen, beide optional:
 
 * die Detailseite des Beschlusses (``?json=true``) — Volltext des Gegenstands
   und der Verweis auf die ursprüngliche Vorlage,
-* die Detailseite dieser Vorlage — Abstimmungsverhalten der Fraktionen und die
-  Schlagzeile der Parlamentskorrespondenz zur Plenarsitzung.
+* die Detailseite dieser Vorlage — das Abstimmungsverhalten der Fraktionen.
+
+Die Meldungen der Parlamentskorrespondenz werden bewusst nicht übernommen:
+sie fassen ganze Debattenblöcke zusammen, ihre Schlagzeile handelt oft von
+einem anderen Gesetz desselben Blocks.
 
 Fehlt eine Ergänzung, erscheint der Beschluss trotzdem — nur knapper.
 Daten: Parlament Österreich, Lizenz CC BY 4.0.
@@ -109,20 +112,8 @@ def ergaenze_detail(beschluss: Beschluss, detail: dict) -> str:
     return ""
 
 
-def _korrespondenz_zur_plenarsitzung(inhalt: dict) -> str:
-    """Schlagzeile der Parlamentskorrespondenz zum Beschluss im Plenum."""
-    for phase in inhalt.get("phase") or []:
-        if not str(phase.get("name", "")).startswith("Plenarberatungen NR"):
-            continue
-        meldungen = [m for m in phase.get("correspondence") or [] if m.get("title")]
-        if meldungen:
-            neueste = max(meldungen, key=lambda m: _datum(m.get("date")) or date.min)
-            return " ".join(str(neueste["title"]).split())
-    return ""
-
-
 def ergaenze_bezug(beschluss: Beschluss, bezug: dict) -> None:
-    """Abstimmungsverhalten und Korrespondenz-Schlagzeile aus der Vorlage."""
+    """Abstimmungsverhalten der Fraktionen aus der Vorlage."""
     inhalt = bezug.get("content") or {}
     abstimmung = inhalt.get("vote") or {}
     beschluss.parteien = [
@@ -133,9 +124,6 @@ def ergaenze_bezug(beschluss: Beschluss, bezug: dict) -> None:
         )
         for fraktion in abstimmung.get("result") or []
     ]
-    schlagzeile = _korrespondenz_zur_plenarsitzung(inhalt)
-    if schlagzeile:
-        beschluss.erlaeuterung = schlagzeile
 
 
 def _anreichern(beschluss: Beschluss, timeout: int) -> None:

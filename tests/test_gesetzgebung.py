@@ -95,16 +95,16 @@ class TestNationalrat(unittest.TestCase):
         self.assertNotIn("Beschluss des Nationalrates vom", beschluss.erlaeuterung)
         self.assertEqual(beschluss.art, "Bundesgesetz")
 
-    def test_vorlage_liefert_abstimmung_und_plenarmeldung(self):
-        beschluss = Beschluss(datum=date(2026, 9, 23), titel="AVG", erlaeuterung="vorher")
+    def test_vorlage_liefert_abstimmung(self):
+        beschluss = Beschluss(datum=date(2026, 9, 23), titel="AVG", erlaeuterung="Gegenstand")
         nationalrat.ergaenze_bezug(beschluss, lies_json("nr_vorlage_539.json"))
         self.assertEqual([p.name for p in beschluss.dafuer], ["ÖVP", "SPÖ", "NEOS"])
         self.assertEqual([p.name for p in beschluss.dagegen], ["FPÖ", "GRÜNE"])
+        self.assertEqual(beschluss.parteien[0].farbe, "#0052FB")
         self.assertFalse(beschluss.einstimmig)
-        # Die jüngste Meldung aus der Plenarphase — nicht die des Ausschusses.
-        self.assertEqual(
-            beschluss.erlaeuterung, "Testmeldung: Nationalrat beschließt Änderungen im Verwaltungsverfahren"
-        )
+        # Korrespondenz-Meldungen decken ganze Debattenblöcke ab und würden oft
+        # ein anderes Gesetz beschreiben — der Gegenstand bleibt stehen.
+        self.assertEqual(beschluss.erlaeuterung, "Gegenstand")
 
     def test_einstimmig(self):
         beschluss = Beschluss(
@@ -285,9 +285,14 @@ class TestRepraesentantenhaus(unittest.TestCase):
         ohne_merker = len(abfragen)
         abfragen.clear()
         self.assertEqual(kongress.letzte_nummer(existiert, bekannt=313), 314)
-        self.assertLess(len(abfragen), 5)
+        self.assertLessEqual(len(abfragen), 10)  # eine Runde knapp über dem Merker
         self.assertLess(len(abfragen), ohne_merker)
         self.assertEqual(kongress.letzte_nummer(lambda n: False), 0)
+
+    def test_letzte_nummer_trifft_auch_die_raender(self):
+        for jungste in (1, 2, 9, 128, 129, 700, 2999, 3000):
+            self.assertEqual(kongress.letzte_nummer(lambda n, j=jungste: n <= j), jungste)
+            self.assertEqual(kongress.letzte_nummer(lambda n, j=jungste: n <= j, bekannt=1), jungste)
 
     def test_abruf_liest_rueckwaerts_bis_zum_zeitraum(self):
         daten = {
@@ -304,13 +309,20 @@ class TestRepraesentantenhaus(unittest.TestCase):
 
         with tempfile.TemporaryDirectory() as ordner:
             merker = Path(ordner) / "kongress.json"
-            with Ersatzabruf(kongress, antworten) as abruf:
+            with Ersatzabruf(kongress, antworten):
                 beschluesse, juengste = kongress.hole_house(date(2026, 10, 12), date(2026, 10, 19), 5, merker)
             self.assertEqual([b.nummer for b in beschluesse], ["H.R. 1234", "S. 2403"])
             self.assertEqual(juengste, date(2026, 10, 15))
             self.assertEqual(json.loads(merker.read_text())["2026"], 318)
-            # Nichts vor dem Zeitraum unnötig nachgeladen
-            self.assertNotIn(kongress.HOUSE_ABSTIMMUNG.format(jahr=2026, nummer=300), abruf.abgerufen)
+
+            # Zweiter Lauf mit Merker: nur knapp darüber suchen, und rückwärts
+            # nichts vor dem Zeitraum nachladen (315 ist schon zu alt).
+            with Ersatzabruf(kongress, antworten) as abruf:
+                zweiter, _ = kongress.hole_house(date(2026, 10, 12), date(2026, 10, 19), 5, merker)
+            self.assertEqual(len(zweiter), 2)
+            nummern = [int(url.rsplit("roll", 1)[1].split(".")[0]) for url in abruf.abgerufen]
+            self.assertGreaterEqual(min(nummern), 315)
+            self.assertLessEqual(len(nummern), 15)
 
 
 class TestNeueGesetze(unittest.TestCase):

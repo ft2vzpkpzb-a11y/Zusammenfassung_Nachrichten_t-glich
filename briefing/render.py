@@ -712,7 +712,8 @@ def _beschlusszeile(beschluss) -> str:
     if beschluss.nummer:
         meta.append(f"<span>{escape(beschluss.nummer)}</span>")
     if beschluss.themen:
-        meta.append(f"<span>{escape(', '.join(beschluss.themen[:2]))}</span>")
+        # Nur das erste Thema — mehrere brechen die Zeile am Handy unschön um.
+        meta.append(f"<span>{escape(beschluss.themen[0])}</span>")
     if beschluss.stimmen:
         meta.append(f'<span aria-label="Stimmen dafür zu dagegen">{escape(beschluss.stimmen)}</span>')
     if beschluss.ergebnis and beschluss.gremium != "Nationalrat":

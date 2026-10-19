@@ -103,8 +103,9 @@ der Abstimmung im Plenum. Je Beschluss erscheinen:
 
 - der Titel (z. B. „Strafrechtsänderungsgesetz 2026“) und die Art — Bundesgesetz,
   Verfassungsgesetz oder Staatsvertrag,
-- darunter die Schlagzeile der Parlamentskorrespondenz zur Plenarsitzung bzw.,
-  falls es keine gibt, der Gegenstand („Ein Bundesgesetz, mit dem … geändert wird“),
+- darunter der genaue Gegenstand („Ein Bundesgesetz, mit dem … geändert wird“).
+  Schlagzeilen der Parlamentskorrespondenz werden bewusst nicht verwendet: sie
+  fassen ganze Debattenblöcke zusammen und handeln oft von einem anderen Gesetz,
 - das Abstimmungsverhalten der Fraktionen in Parteifarben (Dafür / Dagegen,
   oder „Einstimmig“), die Themen und die Nummer, verlinkt auf die Parlamentsseite.
 
