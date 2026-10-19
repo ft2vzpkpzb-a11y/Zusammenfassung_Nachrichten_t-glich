@@ -34,6 +34,7 @@ jobs:
         env:
           # Fehlt das Secret, bleiben die FT-Schlagzeilen englisch.
           ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+          CONGRESS_API_KEY: ${{ secrets.CONGRESS_API_KEY }}
         run: python3 generate_briefing.py --site vorschau
 
       - name: Zum Herunterladen anhängen

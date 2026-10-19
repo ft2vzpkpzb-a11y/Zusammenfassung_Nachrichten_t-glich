@@ -82,3 +82,74 @@ def demo_ergebnis(quelle, jetzt: datetime, anzahl: int = 0) -> QuellenErgebnis:
             )
         )
     return ergebnis
+
+
+_GESETZE_DE = [
+    "Beispielgesetz 2026",
+    "Muster-Novelle zum Platzhaltergesetz",
+    "Demo-Reformgesetz",
+    "Blindtext-Anpassungsgesetz",
+    "Abkommen zwischen Beispielland und Musterstaat",
+    "Testverfahrensgesetz",
+    "Platzhalter-Förderungsgesetz",
+]
+_GESETZE_EN = [
+    "Sample Infrastructure Act",
+    "Confirmation: Jane Example, to be Placeholder Secretary",
+    "Demo Appropriations Resolution",
+    "Mock Consumer Protection Act",
+]
+# Bewusst keine echten Parteien: erfundene Abstimmungen sollen niemandem zugeschrieben werden.
+_FRAKTIONEN = [("Klub A", "#5ac8fa"), ("Klub B", "#ff3b30"), ("Klub C", "#ff2d55"), ("Klub D", "#007aff"), ("Klub E", "#34c759")]
+
+
+def demo_gesetzgebung(jetzt: datetime, tage: int = 7) -> dict:
+    """Erfundene Beschlüsse für die Layout-Vorschau — klar als Beispiel erkennbar."""
+    from .gesetzgebung import Beschluss, Gesetzgebungsergebnis, Partei, sortiere
+
+    rng = random.Random(f"gesetzgebung-{jetzt:%Y-%m-%d}")
+    heute = jetzt.date()
+
+    nr = Gesetzgebungsergebnis(id="nationalrat", name="Nationalrat", webseite="https://www.parlament.gv.at")
+    for nummer, titel in enumerate(_GESETZE_DE, start=1):
+        dafuer = rng.randint(2, 5)
+        nr.beschluesse.append(
+            Beschluss(
+                datum=heute - timedelta(days=1 + nummer // 4),
+                titel=f"{titel} (Beispiel {nummer})",
+                link="https://www.parlament.gv.at",
+                nummer=f"{900 + nummer}/BNR",
+                gremium="Nationalrat",
+                art="Staatsvertrag" if "Abkommen" in titel else "Bundesgesetz",
+                ergebnis="beschlossen",
+                erlaeuterung="Nationalrat beschließt Platzhalter-Regelung — erfundener Beispieltext.",
+                themen=["Beispielthema"],
+                parteien=[Partei(n, f, i < dafuer) for i, (n, f) in enumerate(_FRAKTIONEN)],
+            )
+        )
+    nr.beschluesse = sortiere(nr.beschluesse)
+    nr.zuletzt = nr.beschluesse[0].datum
+    nr.status.append(FeedStatus(url="https://www.parlament.gv.at", quelle_id="nationalrat", ok=True,
+                                anzahl=len(nr.beschluesse), format="Beispieldaten"))
+
+    us = Gesetzgebungsergebnis(id="kongress", name="US-Kongress", webseite="https://www.congress.gov")
+    for nummer, titel in enumerate(_GESETZE_EN, start=1):
+        ja = rng.randint(40, 70)
+        us.beschluesse.append(
+            Beschluss(
+                datum=heute - timedelta(days=nummer),
+                titel=f"{titel} (Example {nummer})",
+                link="https://www.congress.gov",
+                nummer=f"H.R. {9000 + nummer}",
+                gremium=["Senat", "Repräsentantenhaus", "Präsident"][nummer % 3],
+                art="Personalie" if "Confirmation" in titel else "Gesetz",
+                ergebnis="abgelehnt" if nummer == 3 else "angenommen",
+                angenommen=nummer != 3,
+                stimmen=f"{ja} : {100 - ja}",
+                uebersetzung=f"{rng.choice(_BAUSTEINE_DE)} (Beispiel {nummer})",
+            )
+        )
+    us.zuletzt = us.beschluesse[0].datum
+    us.status.append(FeedStatus(url="https://www.congress.gov", quelle_id="kongress", ok=True,
+                                anzahl=len(us.beschluesse), format="Beispieldaten"))
+    return {"nationalrat": nr, "kongress": us}

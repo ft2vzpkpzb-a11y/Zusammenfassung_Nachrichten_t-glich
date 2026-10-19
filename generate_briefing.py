@@ -18,8 +18,8 @@ from datetime import date, datetime
 from pathlib import Path
 from zoneinfo import ZoneInfo
 
-from briefing import pwa
-from briefing.demo import demo_ergebnis
+from briefing import kongress, nationalrat, pwa
+from briefing.demo import demo_ergebnis, demo_gesetzgebung
 from briefing.feeds import Quelle, lade_konfiguration
 from briefing.fetch import hole_quelle
 from briefing.render import rendere_briefing
@@ -27,6 +27,8 @@ from briefing.translate import uebersetze_schlagzeilen
 
 WURZEL = Path(__file__).resolve().parent
 OHNE_LIMIT = 10_000
+# Merkt sich die jüngste Abstimmungsnummer im Repräsentantenhaus zwischen den Läufen.
+KONGRESS_MERKER = WURZEL / "cache" / "kongress.json"
 
 
 def argumente() -> argparse.Namespace:
@@ -54,11 +56,51 @@ def argumente() -> argparse.Namespace:
         help="Alle Ressorts übernehmen statt nur Politik und Wirtschaft",
     )
     parser.add_argument(
+        "--ohne-gesetzgebung",
+        action="store_true",
+        help="Nationalrat und US-Kongress weglassen",
+    )
+    parser.add_argument(
         "--pruefe",
         action="store_true",
         help="Nur prüfen: jeden Feed abrufen und melden, was ankommt (kein Briefing bauen)",
     )
     return parser.parse_args()
+
+
+def hole_gesetzgebung(konfiguration, heute, timeout: int) -> dict:
+    """Nationalrat und US-Kongress parallel abrufen (je nach Konfiguration)."""
+    optionen = konfiguration.gesetzgebung
+    auftraege = {}
+    if optionen.aktiv and optionen.nationalrat:
+        auftraege["nationalrat"] = lambda: nationalrat.hole_beschluesse(
+            heute, optionen.tage, optionen.gesetzgebungsperioden, timeout
+        )
+    if optionen.aktiv and optionen.kongress:
+        auftraege["kongress"] = lambda: kongress.hole_entscheidungen(
+            heute, optionen.tage, timeout, KONGRESS_MERKER
+        )
+    if not auftraege:
+        return {}
+    with ThreadPoolExecutor(max_workers=len(auftraege)) as pool:
+        laufend = {name: pool.submit(auftrag) for name, auftrag in auftraege.items()}
+        return {name: zukunft.result() for name, zukunft in laufend.items()}
+
+
+def melde_gesetzgebung(gesetzgebung: dict, tage: int) -> None:
+    """Kurzbericht fürs Log — auch im Prüfmodus."""
+    for ergebnis in gesetzgebung.values():
+        markierung = "ok  " if ergebnis.ok else "FEHL"
+        zuletzt = f", zuletzt {ergebnis.zuletzt:%d.%m.%Y}" if ergebnis.zuletzt else ""
+        print(
+            f"[{markierung}] {ergebnis.name:<24} {len(ergebnis.beschluesse):>4} "
+            f"Beschlüsse in {tage} Tagen{zuletzt}"
+        )
+        for status in ergebnis.status:
+            if not status.ok:
+                print(f"    {status.format}: {status.fehler}", file=sys.stderr)
+        for beschluss in ergebnis.beschluesse:
+            print(f"    {beschluss.datum:%d.%m.} {beschluss.nummer:<12} {beschluss.titel[:80]}")
 
 
 def pruefe_feeds(konfiguration, timeout: int) -> int:
@@ -117,6 +159,12 @@ def pruefe_feeds(konfiguration, timeout: int) -> int:
                 probleme += 1
                 print("         Nichts aus Politik/Wirtschaft — Erlaubt-Liste prüfen")
 
+    if konfiguration.gesetzgebung.aktiv:
+        print("\nGesetzgebung")
+        gesetzgebung = hole_gesetzgebung(konfiguration, datetime.now().date(), timeout)
+        melde_gesetzgebung(gesetzgebung, konfiguration.gesetzgebung.tage)
+        probleme += sum(1 for e in gesetzgebung.values() for s in e.status if not s.ok)
+
     print(
         "\nAlles in Ordnung." if not probleme else f"\n{probleme} Feed(s) mit Auffälligkeiten."
     )
@@ -167,6 +215,8 @@ def main() -> int:
 
     if args.ohne_rubrikfilter:
         konfiguration.rubrikfilter.aktiv = False
+    if args.ohne_gesetzgebung or args.quelle:
+        konfiguration.gesetzgebung.aktiv = False
 
     if args.pruefe:
         return pruefe_feeds(konfiguration, args.timeout)
@@ -175,9 +225,12 @@ def main() -> int:
 
     # --- Feeds holen (parallel: ein langsamer Feed bremst die anderen nicht) ---
     ergebnisse: dict = {}
+    gesetzgebung: dict = {}
     if args.demo:
         for quelle in konfiguration.quellen:
             ergebnisse[quelle.id] = demo_ergebnis(quelle, jetzt)
+        if konfiguration.gesetzgebung.aktiv:
+            gesetzgebung = demo_gesetzgebung(jetzt, konfiguration.gesetzgebung.tage)
     else:
         def abrufen(quelle):
             grenze = (
@@ -190,9 +243,14 @@ def main() -> int:
                 rubrikfilter=konfiguration.rubrikfilter,
             )
 
-        with ThreadPoolExecutor(max_workers=min(8, len(konfiguration.quellen))) as pool:
+        with ThreadPoolExecutor(max_workers=min(8, len(konfiguration.quellen)) + 1) as pool:
+            # Gesetzgebung läuft nebenher — sie braucht mehrere Abrufe hintereinander.
+            gesetzgebung_laeuft = pool.submit(
+                hole_gesetzgebung, konfiguration, jetzt.date(), args.timeout
+            )
             for quelle_id, ergebnis in pool.map(abrufen, konfiguration.quellen):
                 ergebnisse[quelle_id] = ergebnis
+            gesetzgebung = gesetzgebung_laeuft.result()
 
     # --- Übersetzen (Standard: Financial Times) ---
     hinweis = ""
@@ -204,6 +262,8 @@ def main() -> int:
             quellenergebnis = ergebnisse.get(quelle.id)
             if quelle.uebersetzen and quellenergebnis:
                 zu_uebersetzen.extend(quellenergebnis.schlagzeilen)
+        if "kongress" in gesetzgebung and konfiguration.gesetzgebung.kongress_uebersetzen:
+            zu_uebersetzen.extend(gesetzgebung["kongress"].beschluesse)
 
         if zu_uebersetzen:
             uebersetzung = uebersetze_schlagzeilen(
@@ -228,14 +288,17 @@ def main() -> int:
     if args.site:
         def html_bauen(archiv: list[date]) -> str:
             return rendere_briefing(
-                konfiguration, ergebnisse, jetzt, hinweis, demo=args.demo, web=True, archiv=archiv
+                konfiguration, ergebnisse, jetzt, hinweis, demo=args.demo, web=True, archiv=archiv,
+                gesetzgebung=gesetzgebung,
             )
 
         ziel = baue_website(
             Path(args.site), html_bauen, jetzt, konfiguration.titel, args.archiv_tage
         )
     else:
-        html = rendere_briefing(konfiguration, ergebnisse, jetzt, hinweis, demo=args.demo)
+        html = rendere_briefing(
+            konfiguration, ergebnisse, jetzt, hinweis, demo=args.demo, gesetzgebung=gesetzgebung
+        )
         ziel = Path(args.out) if args.out else WURZEL / "out" / f"briefing-{jetzt:%Y-%m-%d}.html"
         ziel.parent.mkdir(parents=True, exist_ok=True)
         ziel.write_text(html, encoding="utf-8")
@@ -258,6 +321,9 @@ def main() -> int:
 
     for zeile in probleme:
         print(zeile, file=sys.stderr)
+    if gesetzgebung:
+        print()
+        melde_gesetzgebung(gesetzgebung, konfiguration.gesetzgebung.tage)
     print(f"\n{gesamt} Schlagzeilen → {ziel}")
 
     if gesamt == 0:

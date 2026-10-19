@@ -1,6 +1,7 @@
 name: Feeds prüfen
 
-# Ruft jeden konfigurierten Feed wirklich ab und meldet, was ankommt.
+# Ruft jeden konfigurierten Feed wirklich ab und meldet, was ankommt —
+# ebenso die Gesetzgebung (Parlament, senate.gov, clerk.house.gov, api.congress.gov).
 # Läuft auf GitHub-Runnern, die — anders als manche Arbeitsumgebung — freien
 # Netzzugang haben. Baut kein Briefing und schreibt nichts ins Repo.
 
@@ -11,6 +12,8 @@ on:
       - "config/feeds.json"
       - "briefing/fetch.py"
       - "briefing/rubriken.py"
+      - "briefing/nationalrat.py"
+      - "briefing/kongress.py"
       - ".github/workflows/feeds-pruefen.yml"
   schedule:
     # Wöchentlich montags: meldet stillgelegte oder umgezogene Feeds,
@@ -37,8 +40,10 @@ jobs:
         run: python3 -m unittest discover -s tests
 
       - name: Jeden Feed abrufen
+        env:
+          CONGRESS_API_KEY: ${{ secrets.CONGRESS_API_KEY }}
         run: python3 generate_briefing.py --pruefe
 
       - name: Gegenprobe ohne Rubrikfilter
         if: always()
-        run: python3 generate_briefing.py --pruefe --ohne-rubrikfilter
+        run: python3 generate_briefing.py --pruefe --ohne-rubrikfilter --ohne-gesetzgebung

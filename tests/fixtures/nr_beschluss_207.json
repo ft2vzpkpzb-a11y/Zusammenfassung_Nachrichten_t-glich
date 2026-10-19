@@ -1,0 +1,111 @@
+{
+ "pagetype": "geschichtsseite",
+ "meta": {
+  "description": "Allgemeines Verwaltungsverfahrensgesetz 1991 und Verwaltungsstrafgesetz 1991 (207/BNR)",
+  "generationTime": "Wed Oct 14 23:01:45 GMT 2026",
+  "keywords": "\"Verwaltungsverfahren\"",
+  "lang": "de",
+  "title": "Allgemeines Verwaltungsverfahrensgesetz 1991 und Verwaltungsstrafgesetz 1991 (207/BNR) | Parlament Österreich",
+  "openGraph": {
+   "image": "https://www.parlament.gv.at/static/img/og.png",
+   "title": "Allgemeines Verwaltungsverfahrensgesetz 1991 und Verwaltungsstrafgesetz 1991 | Parlament Österreich",
+   "description": "207/BNR"
+  },
+  "scripts": [],
+  "styles": []
+ },
+ "content": {
+  "breadcrumbs": [
+   {
+    "title": "Start",
+    "url": "/"
+   },
+   {
+    "title": "Gegenstände",
+    "url": "/recherchieren/gegenstaende/"
+   },
+   {
+    "title": "Nationalrat - XXVIII. GP",
+    "url": "/recherchieren/gegenstaende/?NRBR=NR&GP_CODE=XXVIII"
+   },
+   {
+    "title": "Beschluss des Nationalrates",
+    "url": "/recherchieren/gegenstaende/?NRBR=NR&GP_CODE=XXVIII&VHG=BNR&DOKTYP=BNR"
+   },
+   {
+    "title": "207/BNR"
+   }
+  ],
+  "type": "Beschluss des Nationalrates",
+  "sntype": "Beschluss des Nationalrates",
+  "title": "Allgemeines Verwaltungsverfahrensgesetz 1991 und Verwaltungsstrafgesetz 1991",
+  "zitation": "207/BNR",
+  "description": "Beschluss des Nationalrates vom 23. September 2026 betreffend ein Bundesgesetz, mit dem das Allgemeine Verwaltungsverfahrensgesetz 1991 und das Verwaltungsstrafgesetz 1991 geändert werden",
+  "gp_code": "XXVIII",
+  "ityp": "BNR",
+  "inr": 207,
+  "doktyp": "BNR",
+  "update": "2026-10-15T01:01:45",
+  "nr_gp_code": "XXVIII",
+  "intranet": "N",
+  "group": "1",
+  "deleted": false,
+  "einlangen": "2026-09-23T00:00:00",
+  "history_ind": 1.1,
+  "vhg_fertig": "J",
+  "vhg_fertig_docs": "J",
+  "process": "N",
+  "statementsstate": "9 Keine Begutachtung bei dem Doktyp \"BNR\" möglich",
+  "approvalstate": "9 Keine Zustimmung bei dem Doktyp \"BNR\" möglich",
+  "stages": [
+   {
+    "date": "23.09.2026",
+    "text": "Beschluss im Nationalrat ",
+    "priority": 1
+   },
+   {
+    "date": "08.10.2026",
+    "text": "Beschluss im Bundesrat ",
+    "priority": 1
+   }
+  ],
+  "documents": [
+   {
+    "title": "Gesetzestext",
+    "documents": [
+     {
+      "link": "/dokument/XXVIII/BNR/207/fname_1780101.pdf",
+      "type": "PDF"
+     },
+     {
+      "link": "/dokument/XXVIII/BNR/207/fnameorig_1780101.html",
+      "type": "HTML"
+     }
+    ]
+   }
+  ],
+  "reference": [
+   {
+    "text": "Bezug zu",
+    "subject": "Allgemeines Verwaltungsverfahrensgesetz, Verwaltungsstrafgesetz, Änderung",
+    "zitation": "539 d.B.",
+    "url": "/gegenstand/XXVIII/I/539",
+    "art": "B"
+   }
+  ],
+  "topics": {
+   "rendertype": "bubbles",
+   "data": {
+    "title": "",
+    "bubbles": [
+     {
+      "label": "Inneres und Recht",
+      "link": "/suche?thema=Inneres und Recht"
+     }
+    ],
+    "pretext": null,
+    "subtitle": null
+   }
+  }
+ }
+}

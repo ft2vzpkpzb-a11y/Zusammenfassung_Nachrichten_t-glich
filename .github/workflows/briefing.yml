@@ -59,7 +59,7 @@ jobs:
         if: steps.zeit.outputs.ueberspringen != 'true'
         run: pip install -r requirements.txt
 
-      - name: Übersetzungs-Cache laden
+      - name: Cache laden (Übersetzungen, letzte House-Abstimmung)
         if: steps.zeit.outputs.ueberspringen != 'true'
         uses: actions/cache@v4
         with:
@@ -77,6 +77,9 @@ jobs:
           # Ohne dieses Secret bleiben die FT-Schlagzeilen englisch —
           # das Briefing wird trotzdem gebaut.
           ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+          # Optional: ohne eigenen Schlüssel nutzt der Abruf neuer US-Gesetze
+          # den öffentlichen DEMO_KEY von api.congress.gov (wenige Abrufe/Stunde).
+          CONGRESS_API_KEY: ${{ secrets.CONGRESS_API_KEY }}
         run: python3 generate_briefing.py --site docs --archiv-tage 30
 
       - name: Veröffentlichen
