@@ -1,8 +1,10 @@
 # Tägliche Nachrichten-Zusammenfassung
 
 Erzeugt aus RSS-/Atom-Feeds ein einzelnes, in sich geschlossenes HTML-Briefing:
-je Quelle die fünf aktuellsten Schlagzeilen offen, alle weiteren im Aufklapper,
-die Financial Times zusätzlich vollständig und ins Deutsche übersetzt.
+ganz oben die **Gesetzesbeschlüsse des Nationalrates** und die **Entscheidungen
+des US-Kongresses** der letzten sieben Tage, darunter je Quelle die fünf
+aktuellsten Schlagzeilen offen, alle weiteren im Aufklapper, die Financial Times
+zusätzlich vollständig und ins Deutsche übersetzt. Gestaltet im Stil von Apple.
 
 ```bash
 python3 generate_briefing.py            # Briefing für heute → out/briefing-JJJJ-MM-TT.html
@@ -21,9 +23,14 @@ Startbildschirm. Kein Server, keine laufenden Kosten. Drei einmalige Schritte:
 2. **Pages einschalten:** Repo → *Settings* → *Pages* → *Source:* „Deploy from a
    branch“ → Branch `main`, Ordner `/docs` → *Save*. (Der Ordner `docs/`
    entsteht beim ersten Workflow-Lauf, den das Mergen direkt auslöst.)
-3. **Schlüssel hinterlegen** (optional, nur für die FT-Übersetzung): *Settings* →
-   *Secrets and variables* → *Actions* → *New repository secret* →
-   Name `ANTHROPIC_API_KEY`. Ohne Secret erscheint die FT auf Englisch.
+3. **Schlüssel hinterlegen** (beide optional): *Settings* → *Secrets and
+   variables* → *Actions* → *New repository secret*.
+   - `ANTHROPIC_API_KEY` — für die deutsche Übersetzung der FT und der
+     US-Kongress-Titel. Ohne Secret erscheinen sie auf Englisch.
+   - `CONGRESS_API_KEY` — kostenlos unter <https://api.congress.gov/sign-up/>.
+     Nur für die Liste neu unterzeichneter US-Gesetze; ohne eigenen Schlüssel
+     wird der öffentliche `DEMO_KEY` verwendet, der nur wenige Abrufe pro Stunde
+     erlaubt. Ist er ausgeschöpft, sagt das die Karte — der Rest läuft weiter.
 
 Danach liegt das Briefing hier:
 
@@ -43,8 +50,9 @@ Was am Handy sonst noch anders ist:
   Sobald wieder Netz da ist, wird automatisch die frische Ausgabe geholt.
 - **Frühere Ausgaben** stehen unten auf der Seite (30 Tage, einstellbar über
   `--archiv-tage`).
-- Die Werkzeugleiste klebt am Handy nicht oben fest, der Druckknopf ist
-  ausgeblendet, und ein runder Knopf unten rechts springt zurück nach oben.
+- Oben bleibt nur eine schmale, durchscheinende Leiste mit den Rubriken
+  stehen (zum Springen antippen, seitlich wischen für mehr); Suche und Knöpfe
+  scrollen mit weg. Ein runder Knopf unten rechts springt zurück nach oben.
 
 **Die Zeiten ändern:** in `.github/workflows/briefing.yml`. GitHub kennt nur UTC
 und keine Sommerzeit — deshalb stehen dort zwei `cron`-Zeilen (eine je
@@ -69,6 +77,7 @@ nachbauen — ein solcher Lauf wird nie übersprungen.
 
 | | |
 |---|---|
+| **Gesetzgebung ganz oben** | Gesetzesbeschlüsse des Nationalrates und Entscheidungen des US-Kongresses der letzten 7 Tage — mit Abstimmungsverhalten der Fraktionen bzw. Stimmenverhältnis. Siehe [Gesetzgebung](#gesetzgebung-nationalrat-und-us-kongress). |
 | **Erste fünf offen** | Je Quelle sind die fünf aktuellsten Schlagzeilen sichtbar; der Rest (auch 50+) steckt in einem Aufklapper und ist einen Klick entfernt. Über `sichtbare_schlagzeilen` einstellbar. |
 | **Politik & Wirtschaft** | Alle Quellen außer der FT sind auf diese beiden Ressorts eingegrenzt — über Feed-Kategorien, `dc:subject` und den Link-Pfad. Siehe [Nur Politik & Wirtschaft](#nur-politik--wirtschaft). |
 | **Quellen** | ORF.at, DER STANDARD, Die Presse, APA-OTS, tagesschau, SPIEGEL, ZEIT ONLINE, Financial Times, The Wall Street Journal, Bloomberg, BBC News, The Guardian |
@@ -76,7 +85,54 @@ nachbauen — ein solcher Lauf wird nie übersprungen.
 | **Financial Times komplett** | Die FT wird aus drei Feeds (Home, World, Companies) zusammengeführt, dedupliziert und als hervorgehobene Karte oben angezeigt — deutsche Übersetzung als Haupttitel, englisches Original klein darunter. |
 | **Übersetzung** | Über die Claude Messages API (`claude-opus-5`, Structured Outputs). Ergebnisse landen im Cache, ein zweiter Lauf am selben Tag kostet nichts. Ohne API-Key erscheinen die Schlagzeilen im Original — das Briefing bricht nicht ab. |
 | **Feed-Status** | Unten steht je Feed: Status, erkanntes Format, Anzahl Einträge, Dauer. Eine leere Quelle wird als Fehler angezeigt statt still zu verschwinden. |
-| **Bedienung** | Volltextsuche (Taste `/`), „Alle aufklappen“, Hell/Dunkel, Druckansicht. Keine externen Ressourcen, keine Tracker — eine Datei, die überall funktioniert. |
+| **Gestaltung** | Im Stil von Apple: Systemschrift (SF Pro auf iPhone und Mac), große Überschriften mit grauem Nachsatz, weiße Karten mit Quellen-Symbol, Kalenderblätter bei den Beschlüssen, durchscheinende Navigationsleiste, echtes Schwarz im Dunkelmodus. |
+| **Bedienung** | Volltextsuche über Schlagzeilen und Beschlüsse (Taste `/`), „Alle aufklappen“, Hell/Dunkel, Druckansicht. Keine externen Ressourcen, keine Tracker — eine Datei, die überall funktioniert. |
+
+## Gesetzgebung: Nationalrat und US-Kongress
+
+Steht im Briefing ganz oben, Nationalrat zuerst. Zeitraum: die letzten sieben
+Tage (`gesetzgebung.tage` in `config/feeds.json`). Wie überall sind die ersten
+fünf Einträge offen, der Rest im Aufklapper. Gab es im Zeitraum nichts — etwa
+in sitzungsfreien Wochen —, sagt die Karte das und nennt das Datum der letzten
+Entscheidung.
+
+**Nationalrat** — über die [Open-Data-Schnittstelle des Parlaments](https://www.parlament.gv.at/recherchieren/open-data/)
+(Lizenz CC BY 4.0, kein Schlüssel nötig). Jeder Gesetzesbeschluss ist dort ein
+eigener Gegenstand „Beschluss des Nationalrates“ (`BNR`), datiert auf den Tag
+der Abstimmung im Plenum. Je Beschluss erscheinen:
+
+- der Titel (z. B. „Strafrechtsänderungsgesetz 2026“) und die Art — Bundesgesetz,
+  Verfassungsgesetz oder Staatsvertrag,
+- darunter die Schlagzeile der Parlamentskorrespondenz zur Plenarsitzung bzw.,
+  falls es keine gibt, der Gegenstand („Ein Bundesgesetz, mit dem … geändert wird“),
+- das Abstimmungsverhalten der Fraktionen in Parteifarben (Dafür / Dagegen,
+  oder „Einstimmig“), die Themen und die Nummer, verlinkt auf die Parlamentsseite.
+
+„Sonstige Beschlüsse“ (zur Kenntnis genommene Berichte und Ähnliches) sind
+keine Gesetze und fehlen bewusst. Abgefragt werden die Gesetzgebungsperioden
+XXVIII und XXIX — nach der nächsten Wahl ist die neue also schon dabei.
+
+**US-Kongress** — drei Quellen, je nach Art der Entscheidung:
+
+| Was | Quelle | Schlüssel |
+|---|---|---|
+| Abstimmungen im **Senat** | Abstimmungsliste auf senate.gov | keiner |
+| Abstimmungen im **Repräsentantenhaus** | Abstimmungsdateien auf clerk.house.gov | keiner |
+| **Neue Gesetze** (vom Präsidenten unterzeichnet) | api.congress.gov | `CONGRESS_API_KEY` (sonst `DEMO_KEY`) |
+
+Übernommen werden nur Entscheidungen in der Sache: verabschiedete oder
+abgelehnte Gesetze und Resolutionen, bestätigte Nominierungen, Veto-Abstimmungen,
+Staatsverträge. Verfahrensabstimmungen (Cloture, Geschäftsordnungs- und
+Änderungsanträge, „Rules“) machen in Sitzungswochen den Großteil aus und fallen
+weg. Jede Zeile zeigt Kammer, Vorlage (H.R. …, S. …), Stimmenverhältnis und
+Ergebnis; die Titel werden — wie die FT — übersetzt, sofern `ANTHROPIC_API_KEY`
+gesetzt ist. Abstimmungen per Zuruf (*voice vote*) haben kein Protokoll und
+erscheinen nicht; Gesetze, die so beschlossen wurden, tauchen spätestens bei
+der Unterzeichnung unter „Neue Gesetze“ auf.
+
+Abschalten lässt sich alles über `"gesetzgebung": {"aktiv": false}` bzw. je
+Teil über `nationalrat.aktiv` / `kongress.aktiv`, für einen einzelnen Lauf über
+`--ohne-gesetzgebung`.
 
 ## Der ORF-Fehler (behoben)
 
@@ -140,6 +196,7 @@ wenn keine einzige Schlagzeile ankam — das lässt sich überwachen.
 | `--archiv-tage N` | Wie viele frühere Ausgaben behalten (Standard 30) |
 | `--pruefe` | Nur prüfen: jeden Feed abrufen und melden, was ankommt (baut kein Briefing) |
 | `--ohne-rubrikfilter` | Alle Ressorts übernehmen statt nur Politik und Wirtschaft |
+| `--ohne-gesetzgebung` | Nationalrat und US-Kongress weglassen |
 
 ## Quellen anpassen
 
@@ -291,13 +348,15 @@ funktioniert, steht nach dem nächsten Lauf in der Statustabelle.
 python3 -m unittest discover -s tests -v
 ```
 
-70 Tests, keine Netzwerkzugriffe: Parser für RDF/RSS 2.0/Atom, Datums- und
+102 Tests, keine Netzwerkzugriffe: Parser für RDF/RSS 2.0/Atom, Datums- und
 Link-Ermittlung, Deduplizierung, Fehlerstatus, Rendering (5 sichtbar +
 Aufklapper, Übersetzungsreihenfolge, HTML-Maskierung), Konfigurationsprüfung,
 Übersetzung mit Stub-Client (Structured Outputs, Cache, Verhalten ohne API-Key),
 Website-Modus (Archiv-Aufräumen, Manifest, Service Worker) sowie der
-Rubrikfilter (Kategorien, `dc:subject`, Pfad-Signale, Sperr- vor Erlaubt-Liste)
-und die Ausweichadressen.
+Rubrikfilter (Kategorien, `dc:subject`, Pfad-Signale, Sperr- vor Erlaubt-Liste),
+die Ausweichadressen und die Gesetzgebung (Filter-API des Parlaments,
+Abstimmungslisten von Senat und Repräsentantenhaus, Suche nach der jüngsten
+House-Abstimmung, neue Gesetze, Schlüssel nie in der Seite, Darstellung).
 Dieselben Tests laufen im Workflow vor jedem Veröffentlichen.
 
 ## Aufbau
@@ -307,11 +366,14 @@ generate_briefing.py     CLI: holen → übersetzen → rendern → Website baue
 briefing/feeds.py        Konfiguration laden und prüfen
 briefing/fetch.py        HTTP-Abruf + formatunabhängiger Parser (ORF-Fix)
 briefing/translate.py    Übersetzung via Claude Messages API, mit Cache
+briefing/gesetzgebung.py Gemeinsames Gerüst für Beschlüsse (Datum, Titel, Ergebnis)
+briefing/nationalrat.py  Gesetzesbeschlüsse über die Open-Data-Schnittstelle des Parlaments
+briefing/kongress.py     Senat, Repräsentantenhaus und neue US-Gesetze
 briefing/render.py       HTML, CSS und JavaScript des Briefings
 briefing/pwa.py          Manifest, Service Worker, App-Symbole fürs Handy
 briefing/demo.py         Beispieldaten für --demo
 config/feeds.json        Quellen und Einstellungen
 assets/                  App-Symbole (Quelle: icon.svg)
 docs/                    Wird vom Workflow erzeugt — das ist die Pages-Website
-.github/workflows/       Täglicher Lauf um 05:00 UTC
+.github/workflows/       Briefing (05:00, 13:00, 21:00 Wien), Feed-Prüfung, Vorschau
 ```

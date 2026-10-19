@@ -97,10 +97,23 @@ def melde_gesetzgebung(gesetzgebung: dict, tage: int) -> None:
             f"Beschlüsse in {tage} Tagen{zuletzt}"
         )
         for status in ergebnis.status:
-            if not status.ok:
-                print(f"    {status.format}: {status.fehler}", file=sys.stderr)
+            zustand = f"{status.anzahl} im Zeitraum" if status.ok else f"FEHLER {status.fehler}"
+            print(f"    {status.format}: {zustand} · {status.dauer_ms} ms")
         for beschluss in ergebnis.beschluesse:
             print(f"    {beschluss.datum:%d.%m.} {beschluss.nummer:<12} {beschluss.titel[:80]}")
+            details = []
+            if beschluss.parteien:
+                details.append(
+                    "einstimmig" if beschluss.einstimmig else
+                    f"dafür {', '.join(p.name for p in beschluss.dafuer)}; "
+                    f"dagegen {', '.join(p.name for p in beschluss.dagegen)}"
+                )
+            if beschluss.stimmen:
+                details.append(f"{beschluss.stimmen} {beschluss.ergebnis}")
+            if beschluss.erlaeuterung:
+                details.append(beschluss.erlaeuterung[:90])
+            if details:
+                print(f"                         {' | '.join(details)}")
 
 
 def pruefe_feeds(konfiguration, timeout: int) -> int:
