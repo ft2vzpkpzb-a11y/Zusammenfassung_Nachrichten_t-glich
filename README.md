@@ -21,9 +21,11 @@ Startbildschirm. Kein Server, keine laufenden Kosten. Drei einmalige Schritte:
 1. **Pages auf „GitHub Actions“ stellen:** Repo → *Settings* → *Pages* →
    unter *Build and deployment* bei *Source* „GitHub Actions“ wählen. Die
    Vorlagen, die GitHub danach anbietet, nicht übernehmen — der Workflow
-   veröffentlicht selbst. (Früher lief die Seite über „Deploy from a branch“;
-   seit dem 6. November 2026 hat GitHub die Pushes des Workflows dort nicht
-   mehr ausgeliefert. Der Workflow veröffentlicht deshalb jetzt direkt.)
+   veröffentlicht selbst. Zeigt die Seite stattdessen „Upgrade or make this
+   repository public to enable Pages“, ist das Repository privat: Im
+   kostenlosen GitHub-Plan gibt es Pages nur für öffentliche Repositories
+   (siehe „Zur Sichtbarkeit“ unten). So stand die Seite ab dem 6. November 2026
+   still, nachdem das Repository auf privat gestellt worden war.
 2. **Branch nach `main` mergen.** Geplante Workflows startet GitHub nur vom
    Standard-Branch — solange der Workflow nicht auf `main` liegt, läuft nichts.
    Das Mergen löst sofort einen ersten Lauf aus.
@@ -80,12 +82,19 @@ dem Zeitpunkt der letzten Ausgabe. Über *Actions* → *Briefing bauen* →
 > `POST https://api.github.com/repos/ft2vzpkpzb-a11y/Zusammenfassung_Nachrichten_t-glich/actions/workflows/briefing.yml/dispatches`
 > mit dem Inhalt `{"ref": "main"}`.
 
-> **Zur Sichtbarkeit:** Das Repo ist öffentlich, die Pages-Seite ist damit für
-> jeden erreichbar, der die Adresse kennt. Inhalt sind ausschließlich
-> Schlagzeilen aus öffentlichen Feeds. Soll die Seite nicht öffentlich sein,
-> braucht es entweder GitHub Pro (Pages für private Repos) oder einen anderen
-> Host mit Zugriffsschutz — der Rest bleibt identisch, gebaut wird immer nur
-> `docs/`.
+> **Zur Sichtbarkeit:** Im kostenlosen GitHub-Plan braucht Pages ein
+> öffentliches Repository — Code und Commit-Historie (mit Name und E-Mail der
+> Autoren) sind dann für jeden sichtbar; die Secrets bleiben geheim. Mit
+> GitHub Pro darf das Repository privat bleiben, die Pages-Seite ist aber
+> trotzdem für jeden erreichbar, der die Adresse kennt; private Pages-Seiten
+> gibt es nur mit GitHub Enterprise. Soll auch die Seite selbst geschützt
+> sein, braucht es einen anderen Host mit Zugriffsschutz — gebaut wird dort
+> genauso nur `docs/`. Inhalt sind ausschließlich Schlagzeilen aus
+> öffentlichen Feeds und öffentliche Parlamentsdaten.
+>
+> In einem privaten Repository zählen die Workflow-Minuten gegen das
+> Kontingent des Plans; jeder stündliche Anstoß wird mit mindestens einer
+> Minute berechnet. Öffentliche Repositories zahlen dafür nichts.
 
 ## Was das Briefing kann
 
