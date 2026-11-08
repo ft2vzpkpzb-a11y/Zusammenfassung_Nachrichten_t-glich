@@ -1,8 +1,10 @@
 # Tägliche Nachrichten-Zusammenfassung
 
 Erzeugt aus RSS-/Atom-Feeds ein einzelnes, in sich geschlossenes HTML-Briefing:
-je Quelle die fünf aktuellsten Schlagzeilen offen, alle weiteren im Aufklapper,
-die Financial Times zusätzlich vollständig und ins Deutsche übersetzt.
+ganz oben die **Gesetzesbeschlüsse des Nationalrates** und die **Entscheidungen
+des US-Kongresses** der letzten sieben Tage, darunter je Quelle die fünf
+aktuellsten Schlagzeilen offen, alle weiteren im Aufklapper, die Financial Times
+zusätzlich vollständig und ins Deutsche übersetzt. Gestaltet im Stil von Apple.
 
 ```bash
 python3 generate_briefing.py            # Briefing für heute → out/briefing-JJJJ-MM-TT.html
@@ -12,18 +14,29 @@ python3 generate_briefing.py --site docs # Website bauen (index.html + Archiv + 
 
 ## Täglich am Handy
 
-GitHub Actions baut das Briefing jeden Morgen, GitHub Pages liefert es aus, am
-Handy landet es als App auf dem Startbildschirm. Kein Server, keine laufenden
-Kosten. Drei einmalige Schritte:
+GitHub Actions baut das Briefing dreimal täglich (05:00, 13:00, 21:00 Wiener
+Zeit), GitHub Pages liefert es aus, am Handy landet es als App auf dem
+Startbildschirm. Kein Server, keine laufenden Kosten. Drei einmalige Schritte:
 
-1. **Branch nach `main` mergen.** Geplante Workflows startet GitHub nur vom
+1. **Pages auf „GitHub Actions“ stellen:** Repo → *Settings* → *Pages* →
+   unter *Build and deployment* bei *Source* „GitHub Actions“ wählen. Die
+   Vorlagen, die GitHub danach anbietet, nicht übernehmen — der Workflow
+   veröffentlicht selbst. Zeigt die Seite stattdessen „Upgrade or make this
+   repository public to enable Pages“, ist das Repository privat: Im
+   kostenlosen GitHub-Plan gibt es Pages nur für öffentliche Repositories
+   (siehe „Zur Sichtbarkeit“ unten). So stand die Seite ab dem 6. November 2026
+   still, nachdem das Repository auf privat gestellt worden war.
+2. **Branch nach `main` mergen.** Geplante Workflows startet GitHub nur vom
    Standard-Branch — solange der Workflow nicht auf `main` liegt, läuft nichts.
-2. **Pages einschalten:** Repo → *Settings* → *Pages* → *Source:* „Deploy from a
-   branch“ → Branch `main`, Ordner `/docs` → *Save*. (Der Ordner `docs/`
-   entsteht beim ersten Workflow-Lauf, den das Mergen direkt auslöst.)
-3. **Schlüssel hinterlegen** (optional, nur für die FT-Übersetzung): *Settings* →
-   *Secrets and variables* → *Actions* → *New repository secret* →
-   Name `ANTHROPIC_API_KEY`. Ohne Secret erscheint die FT auf Englisch.
+   Das Mergen löst sofort einen ersten Lauf aus.
+3. **Schlüssel hinterlegen** (beide optional): *Settings* → *Secrets and
+   variables* → *Actions* → *New repository secret*.
+   - `ANTHROPIC_API_KEY` — für die deutsche Übersetzung der FT und der
+     US-Kongress-Titel. Ohne Secret erscheinen sie auf Englisch.
+   - `CONGRESS_API_KEY` — kostenlos unter <https://api.congress.gov/sign-up/>.
+     Nur für die Liste neu unterzeichneter US-Gesetze; ohne eigenen Schlüssel
+     wird der öffentliche `DEMO_KEY` verwendet, der nur wenige Abrufe pro Stunde
+     erlaubt. Ist er ausgeschöpft, sagt das die Karte — der Rest läuft weiter.
 
 Danach liegt das Briefing hier:
 
@@ -43,32 +56,107 @@ Was am Handy sonst noch anders ist:
   Sobald wieder Netz da ist, wird automatisch die frische Ausgabe geholt.
 - **Frühere Ausgaben** stehen unten auf der Seite (30 Tage, einstellbar über
   `--archiv-tage`).
-- Die Werkzeugleiste klebt am Handy nicht oben fest, der Druckknopf ist
-  ausgeblendet, und ein runder Knopf unten rechts springt zurück nach oben.
+- Oben bleibt nur eine schmale, durchscheinende Leiste mit den Rubriken
+  stehen (zum Springen antippen, seitlich wischen für mehr); Suche und Knöpfe
+  scrollen mit weg. Ein runder Knopf unten rechts springt zurück nach oben.
 
-Den Zeitpunkt ändern: `cron` in `.github/workflows/briefing.yml` (UTC, also
-`0 5 * * *` = 07:00 Wiener Zeit im Sommer). Ein zweiter Lauf am Abend ist einfach
-eine zweite `- cron:`-Zeile. Über *Actions* → *Briefing bauen* → *Run workflow*
-lässt sich jederzeit von Hand nachbauen.
+**Wann eine neue Ausgabe erscheint:** zu den Terminen unter `"ausgaben"` in
+`config/feeds.json` (Wiener Zeit, Standard 05:00, 13:00, 21:00 — die
+Sommerzeit ist damit automatisch berücksichtigt). Der Workflow wird stündlich
+angestoßen; der Schritt „Fällig?“ baut, sobald ein Termin erreicht ist und
+seither noch keine Ausgabe erschien. Woran er das erkennt: an `docs/stand.txt`,
+dem Zeitpunkt der letzten Ausgabe. Über *Actions* → *Briefing bauen* →
+*Run workflow* lässt sich jederzeit von Hand nachbauen.
 
-> **Zur Sichtbarkeit:** Das Repo ist öffentlich, die Pages-Seite ist damit für
-> jeden erreichbar, der die Adresse kennt. Inhalt sind ausschließlich
-> Schlagzeilen aus öffentlichen Feeds. Soll die Seite nicht öffentlich sein,
-> braucht es entweder GitHub Pro (Pages für private Repos) oder einen anderen
-> Host mit Zugriffsschutz — der Rest bleibt identisch, gebaut wird immer nur
-> `docs/`.
+> **Warum stündlich?** GitHub startet geplante Läufe nicht pünktlich. Die Läufe
+> für 05:00 UTC kamen im Oktober/November 2026 zwischen 09:20 und 13:20 UTC an —
+> vier bis acht Stunden zu spät. Ein Workflow, der nur zur Zielstunde baut, käme
+> so fast nie zum Zug. Mit einem Anstoß pro Stunde baut der erste Lauf nach dem
+> Termin; wie bald der kommt, hängt davon ab, wie GitHub die Läufe gerade
+> verteilt. Die übrigen Läufe der Stunde enden nach wenigen Sekunden mit
+> „nichts zu tun“ — im Actions-Tab stehen deshalb viele kurze Läufe.
+>
+> **Auf die Minute genau** geht es nur mit einem externen Wecker, der den
+> Workflow zur vollen Stunde über die GitHub-API startet (etwa cron-job.org mit
+> einem Token, das nur für dieses Repository *Actions: Read and write* darf):
+> `POST https://api.github.com/repos/ft2vzpkpzb-a11y/Zusammenfassung_Nachrichten_t-glich/actions/workflows/briefing.yml/dispatches`
+> mit dem Inhalt `{"ref": "main"}`.
+
+> **Zur Sichtbarkeit:** Im kostenlosen GitHub-Plan braucht Pages ein
+> öffentliches Repository — Code und Commit-Historie (mit Name und E-Mail der
+> Autoren) sind dann für jeden sichtbar; die Secrets bleiben geheim. Mit
+> GitHub Pro darf das Repository privat bleiben, die Pages-Seite ist aber
+> trotzdem für jeden erreichbar, der die Adresse kennt; private Pages-Seiten
+> gibt es nur mit GitHub Enterprise. Soll auch die Seite selbst geschützt
+> sein, braucht es einen anderen Host mit Zugriffsschutz — gebaut wird dort
+> genauso nur `docs/`. Inhalt sind ausschließlich Schlagzeilen aus
+> öffentlichen Feeds und öffentliche Parlamentsdaten.
+>
+> In einem privaten Repository zählen die Workflow-Minuten gegen das
+> Kontingent des Plans; jeder stündliche Anstoß wird mit mindestens einer
+> Minute berechnet. Öffentliche Repositories zahlen dafür nichts.
 
 ## Was das Briefing kann
 
 | | |
 |---|---|
+| **Gesetzgebung ganz oben** | Gesetzesbeschlüsse des Nationalrates und Entscheidungen des US-Kongresses der letzten 7 Tage — mit Abstimmungsverhalten der Fraktionen bzw. Stimmenverhältnis. Siehe [Gesetzgebung](#gesetzgebung-nationalrat-und-us-kongress). |
 | **Erste fünf offen** | Je Quelle sind die fünf aktuellsten Schlagzeilen sichtbar; der Rest (auch 50+) steckt in einem Aufklapper und ist einen Klick entfernt. Über `sichtbare_schlagzeilen` einstellbar. |
 | **Politik & Wirtschaft** | Alle Quellen außer der FT sind auf diese beiden Ressorts eingegrenzt — über Feed-Kategorien, `dc:subject` und den Link-Pfad. Siehe [Nur Politik & Wirtschaft](#nur-politik--wirtschaft). |
-| **Quellen** | ORF.at, DER STANDARD, Die Presse, APA-OTS, tagesschau, SPIEGEL, ZEIT ONLINE, Financial Times, BBC News, The Guardian |
+| **Quellen** | ORF.at, DER STANDARD, Die Presse, APA-OTS, tagesschau, SPIEGEL, ZEIT ONLINE, Financial Times, The Wall Street Journal, Bloomberg, BBC News, The Guardian |
+| **Dreimal täglich** | Neue Ausgaben ab **05:00, 13:00 und 21:00** Wiener Zeit (alle acht Stunden) — beim ersten Workflow-Lauf nach dem Termin. |
 | **Financial Times komplett** | Die FT wird aus drei Feeds (Home, World, Companies) zusammengeführt, dedupliziert und als hervorgehobene Karte oben angezeigt — deutsche Übersetzung als Haupttitel, englisches Original klein darunter. |
 | **Übersetzung** | Über die Claude Messages API (`claude-opus-5`, Structured Outputs). Ergebnisse landen im Cache, ein zweiter Lauf am selben Tag kostet nichts. Ohne API-Key erscheinen die Schlagzeilen im Original — das Briefing bricht nicht ab. |
 | **Feed-Status** | Unten steht je Feed: Status, erkanntes Format, Anzahl Einträge, Dauer. Eine leere Quelle wird als Fehler angezeigt statt still zu verschwinden. |
-| **Bedienung** | Volltextsuche (Taste `/`), „Alle aufklappen“, Hell/Dunkel, Druckansicht. Keine externen Ressourcen, keine Tracker — eine Datei, die überall funktioniert. |
+| **Gestaltung** | Im Stil von Apple: Systemschrift (SF Pro auf iPhone und Mac), große Überschriften mit grauem Nachsatz, weiße Karten mit Quellen-Symbol, Kalenderblätter bei den Beschlüssen, durchscheinende Navigationsleiste, echtes Schwarz im Dunkelmodus. |
+| **Bedienung** | Volltextsuche über Schlagzeilen und Beschlüsse (Taste `/`), „Alle aufklappen“, Hell/Dunkel, Druckansicht. Keine externen Ressourcen, keine Tracker — eine Datei, die überall funktioniert. |
+
+## Gesetzgebung: Nationalrat und US-Kongress
+
+Steht im Briefing ganz oben, Nationalrat zuerst. Zeitraum: die letzten sieben
+Tage (`gesetzgebung.tage` in `config/feeds.json`). Wie überall sind die ersten
+fünf Einträge offen, der Rest im Aufklapper. Gab es im Zeitraum nichts — etwa
+in sitzungsfreien Wochen —, sagt die Karte das und nennt das Datum der letzten
+Entscheidung.
+
+**Nationalrat** — über die [Open-Data-Schnittstelle des Parlaments](https://www.parlament.gv.at/recherchieren/open-data/)
+(Lizenz CC BY 4.0, kein Schlüssel nötig). Jeder Gesetzesbeschluss ist dort ein
+eigener Gegenstand „Beschluss des Nationalrates“ (`BNR`), datiert auf den Tag
+der Abstimmung im Plenum. Je Beschluss erscheinen:
+
+- der Titel (z. B. „Strafrechtsänderungsgesetz 2026“) und die Art — Bundesgesetz,
+  Verfassungsgesetz oder Staatsvertrag,
+- darunter der genaue Gegenstand („Ein Bundesgesetz, mit dem … geändert wird“).
+  Schlagzeilen der Parlamentskorrespondenz werden bewusst nicht verwendet: sie
+  fassen ganze Debattenblöcke zusammen und handeln oft von einem anderen Gesetz,
+- das Abstimmungsverhalten der Fraktionen in Parteifarben (Dafür / Dagegen,
+  oder „Einstimmig“), die Themen und die Nummer, verlinkt auf die Parlamentsseite.
+
+„Sonstige Beschlüsse“ (zur Kenntnis genommene Berichte und Ähnliches) sind
+keine Gesetze und fehlen bewusst. Abgefragt werden die Gesetzgebungsperioden
+XXVIII und XXIX — nach der nächsten Wahl ist die neue also schon dabei.
+
+**US-Kongress** — drei Quellen, je nach Art der Entscheidung:
+
+| Was | Quelle | Schlüssel |
+|---|---|---|
+| Abstimmungen im **Senat** | Abstimmungsliste auf senate.gov | keiner — seit November 2026 sperrt senate.gov automatische Abrufe (403); die Karte weist dann darauf hin |
+| Abstimmungen im **Repräsentantenhaus** | Abstimmungsdateien auf clerk.house.gov | keiner |
+| **Neue Gesetze** (vom Präsidenten unterzeichnet) | api.congress.gov | `CONGRESS_API_KEY` (sonst `DEMO_KEY`) |
+
+Übernommen werden nur Entscheidungen in der Sache: verabschiedete oder
+abgelehnte Gesetze und Resolutionen, bestätigte Nominierungen, Veto-Abstimmungen,
+Staatsverträge. Verfahrensabstimmungen (Cloture, Geschäftsordnungs- und
+Änderungsanträge, „Rules“) machen in Sitzungswochen den Großteil aus und fallen
+weg. Jede Zeile zeigt Kammer, Vorlage (H.R. …, S. …), Stimmenverhältnis und
+Ergebnis; die Titel werden — wie die FT — übersetzt, sofern `ANTHROPIC_API_KEY`
+gesetzt ist. Abstimmungen per Zuruf (*voice vote*) haben kein Protokoll und
+erscheinen nicht; Gesetze, die so beschlossen wurden, tauchen spätestens bei
+der Unterzeichnung unter „Neue Gesetze“ auf.
+
+Abschalten lässt sich alles über `"gesetzgebung": {"aktiv": false}` bzw. je
+Teil über `nationalrat.aktiv` / `kongress.aktiv`, für einen einzelnen Lauf über
+`--ohne-gesetzgebung`.
 
 ## Der ORF-Fehler (behoben)
 
@@ -132,6 +220,7 @@ wenn keine einzige Schlagzeile ankam — das lässt sich überwachen.
 | `--archiv-tage N` | Wie viele frühere Ausgaben behalten (Standard 30) |
 | `--pruefe` | Nur prüfen: jeden Feed abrufen und melden, was ankommt (baut kein Briefing) |
 | `--ohne-rubrikfilter` | Alle Ressorts übernehmen statt nur Politik und Wirtschaft |
+| `--ohne-gesetzgebung` | Nationalrat und US-Kongress weglassen |
 
 ## Quellen anpassen
 
@@ -193,7 +282,7 @@ Dasselbe läuft automatisch: **Actions → „Feeds prüfen"** startet bei jeder
 Damit fällt ein umgezogener Feed auf, bevor er im Briefing als leere Karte
 auffällt.
 
-### Zuletzt geprüfter Stand (30.07.2026, GitHub-Runner)
+### Zuletzt geprüfter Stand (06.08.2026, GitHub-Runner)
 
 Alle Feeds abgerufen, alle liefern; Zahlen sind Einträge im Feed / davon nach
 dem Rubrikfilter:
@@ -207,12 +296,19 @@ dem Rubrikfilter:
 | tagesschau | inland, ausland, wirtschaft | 49 / 65 / 44 → vollständig |
 | SPIEGEL | politik, wirtschaft | 20 / 20 → vollständig |
 | ZEIT ONLINE | politik, wirtschaft | 15 / 13 → vollständig |
-| Financial Times | home, world, companies | 10 / 25 / 25 → ohne Filter |
-| BBC News | politics, business | 69 / 48 → vollständig |
+| Financial Times | home, world, companies | 8 / 25 / 25 → ohne Filter |
+| The Wall Street Journal | World News, US Business, Markets | 20 / 20 / 20 → vollständig |
+| Bloomberg | politics, economics, markets | 20 / 20 / 20 → vollständig |
+| BBC News | politics, business | 68 / 54 → vollständig |
 | The Guardian | politics, business | 21 / 20 → vollständig |
 
 „Vollständig" heißt: Es sind Ressort-Feeds, deren Adresse das Ressort bereits
 nennt — der Filter greift dort nicht mehr in die einzelnen Einträge ein.
+
+> WSJ und Bloomberg sind weitgehend kostenpflichtig. Die Schlagzeilen stehen
+> frei im Feed, der verlinkte Artikel führt aber oft auf eine Bezahlschranke.
+> Übersetzt werden sie nicht — wer das möchte, setzt bei der Quelle
+> `"uebersetzen": true` (kostet dann API-Aufrufe wie bei der FT).
 
 ### Zur APA
 
@@ -276,13 +372,16 @@ funktioniert, steht nach dem nächsten Lauf in der Statustabelle.
 python3 -m unittest discover -s tests -v
 ```
 
-65 Tests, keine Netzwerkzugriffe: Parser für RDF/RSS 2.0/Atom, Datums- und
+115 Tests, keine Netzwerkzugriffe: Parser für RDF/RSS 2.0/Atom, Datums- und
 Link-Ermittlung, Deduplizierung, Fehlerstatus, Rendering (5 sichtbar +
 Aufklapper, Übersetzungsreihenfolge, HTML-Maskierung), Konfigurationsprüfung,
 Übersetzung mit Stub-Client (Structured Outputs, Cache, Verhalten ohne API-Key),
 Website-Modus (Archiv-Aufräumen, Manifest, Service Worker) sowie der
-Rubrikfilter (Kategorien, `dc:subject`, Pfad-Signale, Sperr- vor Erlaubt-Liste)
-und die Ausweichadressen.
+Rubrikfilter (Kategorien, `dc:subject`, Pfad-Signale, Sperr- vor Erlaubt-Liste),
+die Ausweichadressen und die Gesetzgebung (Filter-API des Parlaments,
+Abstimmungslisten von Senat und Repräsentantenhaus, Suche nach der jüngsten
+House-Abstimmung, neue Gesetze, Schlüssel nie in der Seite, Darstellung) und
+die Zeitsteuerung (verspätete Läufe, Zeitumstellung, `stand.txt`).
 Dieselben Tests laufen im Workflow vor jedem Veröffentlichen.
 
 ## Aufbau
@@ -292,11 +391,15 @@ generate_briefing.py     CLI: holen → übersetzen → rendern → Website baue
 briefing/feeds.py        Konfiguration laden und prüfen
 briefing/fetch.py        HTTP-Abruf + formatunabhängiger Parser (ORF-Fix)
 briefing/translate.py    Übersetzung via Claude Messages API, mit Cache
+briefing/gesetzgebung.py Gemeinsames Gerüst für Beschlüsse (Datum, Titel, Ergebnis)
+briefing/nationalrat.py  Gesetzesbeschlüsse über die Open-Data-Schnittstelle des Parlaments
+briefing/kongress.py     Senat, Repräsentantenhaus und neue US-Gesetze
 briefing/render.py       HTML, CSS und JavaScript des Briefings
 briefing/pwa.py          Manifest, Service Worker, App-Symbole fürs Handy
 briefing/demo.py         Beispieldaten für --demo
 config/feeds.json        Quellen und Einstellungen
 assets/                  App-Symbole (Quelle: icon.svg)
-docs/                    Wird vom Workflow erzeugt — das ist die Pages-Website
-.github/workflows/       Täglicher Lauf um 05:00 UTC
+briefing/zeitplan.py     Ist eine neue Ausgabe fällig? (für den stündlichen Workflow)
+docs/                    Wird vom Workflow erzeugt: Website, Archiv, stand.txt
+.github/workflows/       Briefing (stündlich, baut zu den Terminen), Feed-Prüfung, Vorschau
 ```

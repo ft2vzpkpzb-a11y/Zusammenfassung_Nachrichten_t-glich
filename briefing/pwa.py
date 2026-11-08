@@ -16,7 +16,7 @@ SYMBOLE = ["icon-192.png", "icon-512.png", "apple-touch-icon.png", "icon.svg"]
 
 # Netz zuerst: online immer das frische Briefing, offline das zuletzt geladene.
 SERVICE_WORKER = """
-const CACHE = 'briefing-v1';
+const CACHE = 'briefing-v2';
 const VORRAT = [
   './index.html', './manifest.webmanifest',
   './icon-192.png', './icon-512.png', './apple-touch-icon.png'
@@ -71,8 +71,8 @@ def manifest(titel: str) -> str:
             "display": "standalone",
             "orientation": "portrait-primary",
             "lang": "de",
-            "background_color": "#f6f6f4",
-            "theme_color": "#16181d",
+            "background_color": "#f5f5f7",
+            "theme_color": "#f5f5f7",
             "icons": [
                 {"src": "icon-192.png", "sizes": "192x192", "type": "image/png"},
                 {"src": "icon-512.png", "sizes": "512x512", "type": "image/png"},
@@ -93,8 +93,8 @@ def kopfzeilen() -> str:
     """Meta-Tags, damit iOS und Android die Seite als App behandeln."""
     return """
 <link rel="manifest" href="manifest.webmanifest">
-<meta name="theme-color" media="(prefers-color-scheme: light)" content="#f6f6f4">
-<meta name="theme-color" media="(prefers-color-scheme: dark)" content="#101216">
+<meta name="theme-color" media="(prefers-color-scheme: light)" content="#f5f5f7">
+<meta name="theme-color" media="(prefers-color-scheme: dark)" content="#000000">
 <link rel="icon" href="icon.svg" type="image/svg+xml">
 <link rel="apple-touch-icon" href="apple-touch-icon.png">
 <meta name="apple-mobile-web-app-capable" content="yes">

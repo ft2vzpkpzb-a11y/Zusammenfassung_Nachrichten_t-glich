@@ -1,10 +1,13 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" role="img" aria-label="Nachrichten-Briefing">
-  <rect width="512" height="512" rx="112" fill="#16181d"/>
-  <rect x="96" y="112" width="228" height="24" rx="12" fill="#f6f6f4"/>
-  <rect x="96" y="176" width="320" height="16" rx="8" fill="#8a919e"/>
-  <rect x="96" y="220" width="320" height="16" rx="8" fill="#8a919e"/>
-  <rect x="96" y="264" width="240" height="16" rx="8" fill="#8a919e"/>
-  <rect x="96" y="332" width="320" height="16" rx="8" fill="#5c6270"/>
-  <rect x="96" y="376" width="180" height="16" rx="8" fill="#5c6270"/>
-  <circle cx="386" cy="120" r="26" fill="#c8102e"/>
+  <defs>
+    <linearGradient id="g" x1="0" y1="0" x2="0.35" y2="1">
+      <stop offset="0" stop-color="#ff6b6b"/>
+      <stop offset="1" stop-color="#e3192d"/>
+    </linearGradient>
+  </defs>
+  <rect width="512" height="512" rx="114" fill="url(#g)"/>
+  <rect x="112" y="128" width="288" height="44" rx="22" fill="#fff"/>
+  <rect x="112" y="220" width="288" height="26" rx="13" fill="#fff" fill-opacity=".82"/>
+  <rect x="112" y="282" width="288" height="26" rx="13" fill="#fff" fill-opacity=".82"/>
+  <rect x="112" y="344" width="196" height="26" rx="13" fill="#fff" fill-opacity=".82"/>
 </svg>

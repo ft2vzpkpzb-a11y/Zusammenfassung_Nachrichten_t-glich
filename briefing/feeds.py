@@ -6,6 +6,7 @@ import json
 from dataclasses import dataclass, field
 from pathlib import Path
 
+from .gesetzgebung import Gesetzgebungsoptionen
 from .rubriken import ERLAUBT, GESPERRT, Rubrikfilter
 
 
@@ -55,10 +56,17 @@ class Quelle:
     alle_anzeigen: bool = False
     rubriken_filtern: bool = True
     hinweis: str = ""
+    kuerzel: str = ""  # Text im Quellen-Symbol (ORF, FT …)
 
     def __post_init__(self) -> None:
         # Erlaubt sowohl "https://…" als auch {"url": …, "alternativen": [...]}
         self.feeds = [_als_feedadresse(f) for f in self.feeds]
+        if not self.kuerzel:
+            woerter = [w for w in self.name.replace("-", " ").split() if w.lower() not in FUELLWOERTER]
+            self.kuerzel = "".join(w[0] for w in woerter[:3]).upper() or self.name[:2]
+
+
+FUELLWOERTER = {"the", "der", "die", "das"}
 
 
 @dataclass
@@ -75,10 +83,12 @@ class Konfiguration:
     titel: str = "Tägliche Nachrichten-Zusammenfassung"
     untertitel: str = ""
     zeitzone: str = "Europe/Vienna"
+    ausgaben: list[str] = field(default_factory=lambda: ["05:00", "13:00", "21:00"])
     sichtbare_schlagzeilen: int = 5
     max_schlagzeilen_pro_quelle: int = 80
     uebersetzung: Uebersetzungsoptionen = field(default_factory=Uebersetzungsoptionen)
     rubrikfilter: Rubrikfilter = field(default_factory=Rubrikfilter)
+    gesetzgebung: Gesetzgebungsoptionen = field(default_factory=Gesetzgebungsoptionen)
     quellen: list[Quelle] = field(default_factory=list)
 
 
@@ -109,6 +119,7 @@ def lade_konfiguration(pfad: str | Path) -> Konfiguration:
                 alle_anzeigen=bool(eintrag.get("alle_anzeigen", False)),
                 rubriken_filtern=bool(eintrag.get("rubriken_filtern", True)),
                 hinweis=eintrag.get("hinweis", ""),
+                kuerzel=eintrag.get("kuerzel", ""),
             )
         )
 
@@ -117,10 +128,15 @@ def lade_konfiguration(pfad: str | Path) -> Konfiguration:
 
     u = rohdaten.get("uebersetzung", {})
     r = rohdaten.get("rubrikfilter", {})
+    g = rohdaten.get("gesetzgebung", {})
+    g_nr = g.get("nationalrat", {})
+    g_us = g.get("kongress", {})
+    vorgabe = Gesetzgebungsoptionen()
     return Konfiguration(
         titel=rohdaten.get("titel", "Tägliche Nachrichten-Zusammenfassung"),
         untertitel=rohdaten.get("untertitel", ""),
         zeitzone=rohdaten.get("zeitzone", "Europe/Vienna"),
+        ausgaben=list(rohdaten.get("ausgaben") or ["05:00", "13:00", "21:00"]),
         sichtbare_schlagzeilen=int(rohdaten.get("sichtbare_schlagzeilen", 5)),
         max_schlagzeilen_pro_quelle=int(rohdaten.get("max_schlagzeilen_pro_quelle", 80)),
         uebersetzung=Uebersetzungsoptionen(
@@ -135,6 +151,16 @@ def lade_konfiguration(pfad: str | Path) -> Konfiguration:
             # Ohne eigene Listen gelten die Vorgaben aus briefing/rubriken.py.
             erlaubt=list(r.get("erlaubt") or ERLAUBT),
             gesperrt=list(r.get("gesperrt") or GESPERRT),
+        ),
+        gesetzgebung=Gesetzgebungsoptionen(
+            aktiv=bool(g.get("aktiv", True)),
+            tage=int(g.get("tage", vorgabe.tage)),
+            nationalrat=bool(g_nr.get("aktiv", True)),
+            gesetzgebungsperioden=list(
+                g_nr.get("gesetzgebungsperioden") or vorgabe.gesetzgebungsperioden
+            ),
+            kongress=bool(g_us.get("aktiv", True)),
+            kongress_uebersetzen=bool(g_us.get("uebersetzen", True)),
         ),
         quellen=quellen,
     )

@@ -16,6 +16,7 @@ Spalte nie wieder stillschweigend passiert.
 from __future__ import annotations
 
 import gzip
+import json
 import time
 import urllib.error
 import urllib.request
@@ -244,6 +245,45 @@ def hole_feed(url: str, timeout: int = 20, versuche: int = 3) -> bytes:
             if versuch < versuche - 1:
                 time.sleep(2**versuch)
     raise RuntimeError(str(letzter_fehler))
+
+
+def hole_daten(
+    url: str,
+    json_daten: dict | None = None,
+    timeout: int = 20,
+    versuche: int = 3,
+    kopfzeilen: dict | None = None,
+) -> bytes:
+    """Daten von einer Schnittstelle holen (GET, mit ``json_daten`` POST).
+
+    Anders als bei Feeds wird ein 4xx-Status nicht wiederholt: ein 404 heißt
+    hier „gibt es nicht“ (etwa eine noch nicht stattgefundene Abstimmung) und
+    soll schnell zurückkommen. Der Status steht im ``HTTPError`` für den Aufrufer.
+    """
+    nutzlast = json.dumps(json_daten).encode("utf-8") if json_daten is not None else None
+    kopf = {
+        "User-Agent": BENUTZER_AGENT,
+        "Accept": "application/json, application/xml;q=0.9, */*;q=0.8",
+        "Accept-Language": "de,en;q=0.8",
+        **({"Content-Type": "application/json"} if nutzlast else {}),
+        **(kopfzeilen or {}),
+    }
+    letzter_fehler: Exception | None = None
+    for versuch in range(versuche):
+        anfrage = urllib.request.Request(url, data=nutzlast, headers=kopf)
+        try:
+            with urllib.request.urlopen(anfrage, timeout=timeout) as antwort:
+                return antwort.read()
+        except urllib.error.HTTPError as fehler:
+            if fehler.code < 500 and fehler.code != 429:
+                raise
+            letzter_fehler = fehler
+        except (urllib.error.URLError, OSError) as fehler:
+            letzter_fehler = fehler
+        if versuch < versuche - 1:
+            time.sleep(2**versuch)
+    assert letzter_fehler is not None
+    raise letzter_fehler
 
 
 def _hole_ersten_treffer(adresse, quelle_id: str, timeout: int):

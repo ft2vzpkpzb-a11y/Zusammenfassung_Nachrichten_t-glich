@@ -1,0 +1,75 @@
+{
+ "bills": [
+  {
+   "congress": 119,
+   "latestAction": {
+    "actionDate": "2026-10-15",
+    "text": "Became Public Law No: 119-124."
+   },
+   "laws": [
+    {
+     "number": "119-124",
+     "type": "Public Law"
+    }
+   ],
+   "number": "2403",
+   "originChamber": "Senate",
+   "originChamberCode": "S",
+   "title": "Retire through Ownership Act",
+   "type": "S",
+   "updateDate": "2026-10-16",
+   "updateDateIncludingText": "2026-10-16",
+   "url": "https://api.congress.gov/v3/bill/119/s/2403?format=json"
+  },
+  {
+   "congress": 119,
+   "latestAction": {
+    "actionDate": "2026-10-15",
+    "text": "Became Public Law No: 119-123."
+   },
+   "laws": [
+    {
+     "number": "119-123",
+     "type": "Public Law"
+    }
+   ],
+   "number": "283",
+   "originChamber": "Senate",
+   "originChamberCode": "S",
+   "title": "Illegal Red Snapper and Tuna Enforcement Act",
+   "type": "S",
+   "updateDate": "2026-10-16",
+   "updateDateIncludingText": "2026-10-16",
+   "url": "https://api.congress.gov/v3/bill/119/s/283?format=json"
+  },
+  {
+   "congress": 119,
+   "latestAction": {
+    "actionDate": "2026-09-01",
+    "text": "Became Public Law No: 119-110."
+   },
+   "laws": [
+    {
+     "number": "119-110",
+     "type": "Public Law"
+    }
+   ],
+   "number": "1234",
+   "originChamber": "House",
+   "originChamberCode": "H",
+   "title": "Example Test Act",
+   "type": "HR",
+   "updateDate": "2026-09-02",
+   "updateDateIncludingText": "2026-09-02",
+   "url": "https://api.congress.gov/v3/bill/119/hr/1234?format=json"
+  }
+ ],
+ "pagination": {
+  "count": 3
+ },
+ "request": {
+  "congress": "119",
+  "contentType": "application/json",
+  "format": "json"
+ }
+}

@@ -2,6 +2,8 @@
   "titel": "Tägliche Nachrichten-Zusammenfassung",
   "untertitel": "Politik & Wirtschaft auf einen Blick",
   "zeitzone": "Europe/Vienna",
+  "_ausgaben": "Uhrzeiten (Wiener Zeit), zu denen eine neue Ausgabe erscheint. Der Workflow wird stündlich angestoßen und baut beim ersten Lauf nach jedem Termin.",
+  "ausgaben": ["05:00", "13:00", "21:00"],
   "sichtbare_schlagzeilen": 5,
   "max_schlagzeilen_pro_quelle": 80,
   "rubrikfilter": {
@@ -17,10 +19,25 @@
     "batch_groesse": 25,
     "cache_datei": "cache/uebersetzungen.json"
   },
+  "gesetzgebung": {
+    "_hinweis": "Steht ganz oben im Briefing: Gesetzesbeschlüsse des Nationalrates und Entscheidungen des US-Kongresses der letzten 'tage' Tage.",
+    "aktiv": true,
+    "tage": 7,
+    "nationalrat": {
+      "aktiv": true,
+      "_hinweis": "Mehrere Gesetzgebungsperioden: nach einer Nationalratswahl ist die neue schon dabei.",
+      "gesetzgebungsperioden": ["XXVIII", "XXIX"]
+    },
+    "kongress": {
+      "aktiv": true,
+      "uebersetzen": true
+    }
+  },
   "quellen": [
     {
       "id": "orf",
       "name": "ORF.at",
+      "kuerzel": "ORF",
       "kategorie": "Österreich",
       "sprache": "de",
       "farbe": "#c8102e",
@@ -33,6 +50,7 @@
     {
       "id": "standard",
       "name": "DER STANDARD",
+      "kuerzel": "dS",
       "kategorie": "Österreich",
       "sprache": "de",
       "farbe": "#00639f",
@@ -46,6 +64,7 @@
     {
       "id": "presse",
       "name": "Die Presse",
+      "kuerzel": "P",
       "kategorie": "Österreich",
       "sprache": "de",
       "farbe": "#1a1a1a",
@@ -70,6 +89,7 @@
     {
       "id": "apa",
       "name": "APA-OTS",
+      "kuerzel": "APA",
       "kategorie": "Österreich",
       "sprache": "de",
       "farbe": "#005ca9",
@@ -95,6 +115,7 @@
     {
       "id": "tagesschau",
       "name": "tagesschau",
+      "kuerzel": "ts",
       "kategorie": "Deutschland",
       "sprache": "de",
       "farbe": "#1a4d8f",
@@ -108,6 +129,7 @@
     {
       "id": "spiegel",
       "name": "SPIEGEL",
+      "kuerzel": "S",
       "kategorie": "Deutschland",
       "sprache": "de",
       "farbe": "#e64415",
@@ -120,6 +142,7 @@
     {
       "id": "zeit",
       "name": "ZEIT ONLINE",
+      "kuerzel": "Z",
       "kategorie": "Deutschland",
       "sprache": "de",
       "farbe": "#1c1c1c",
@@ -132,6 +155,7 @@
     {
       "id": "ft",
       "name": "Financial Times",
+      "kuerzel": "FT",
       "kategorie": "International",
       "sprache": "en",
       "farbe": "#0f5499",
@@ -148,8 +172,55 @@
       ]
     },
     {
+      "id": "wsj",
+      "name": "The Wall Street Journal",
+      "kuerzel": "WSJ",
+      "kategorie": "International",
+      "sprache": "en",
+      "farbe": "#0274b6",
+      "webseite": "https://www.wsj.com",
+      "feeds": [
+        {
+          "url": "https://feeds.a.dj.com/rss/RSSWorldNews.xml",
+          "alternativen": ["https://feeds.a.dj.com/rss/RSSWorldNews"]
+        },
+        {
+          "url": "https://feeds.a.dj.com/rss/WSJcomUSBusiness.xml",
+          "alternativen": ["https://feeds.a.dj.com/rss/WSJcomUSBusiness"]
+        },
+        {
+          "url": "https://feeds.a.dj.com/rss/RSSMarketsMain.xml",
+          "alternativen": ["https://feeds.a.dj.com/rss/RSSMarketsMain"]
+        }
+      ]
+    },
+    {
+      "id": "bloomberg",
+      "name": "Bloomberg",
+      "kuerzel": "B",
+      "kategorie": "International",
+      "sprache": "en",
+      "farbe": "#b45309",
+      "webseite": "https://www.bloomberg.com",
+      "feeds": [
+        {
+          "url": "https://feeds.bloomberg.com/politics/news.rss",
+          "alternativen": ["https://www.bloomberg.com/politics/feeds/site.xml"]
+        },
+        {
+          "url": "https://feeds.bloomberg.com/economics/news.rss",
+          "alternativen": ["https://www.bloomberg.com/economics/feeds/site.xml"]
+        },
+        {
+          "url": "https://feeds.bloomberg.com/markets/news.rss",
+          "alternativen": ["https://www.bloomberg.com/markets/feeds/site.xml"]
+        }
+      ]
+    },
+    {
       "id": "bbc",
       "name": "BBC News",
+      "kuerzel": "BBC",
       "kategorie": "International",
       "sprache": "en",
       "farbe": "#bb1919",
@@ -162,6 +233,7 @@
     {
       "id": "guardian",
       "name": "The Guardian",
+      "kuerzel": "G",
       "kategorie": "International",
       "sprache": "en",
       "farbe": "#052962",

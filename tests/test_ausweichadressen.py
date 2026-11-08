@@ -136,6 +136,7 @@ class TestKonfigurierteAdressen(unittest.TestCase):
         # die FT (ohne Rubrikfilter).
         for quelle_id in (
             "presse", "apa", "standard", "tagesschau", "spiegel", "zeit", "bbc", "guardian",
+            "wsj", "bloomberg",
         ):
             for adresse in self._quelle(quelle_id).feeds:
                 signale = pfadsignale(adresse.url)

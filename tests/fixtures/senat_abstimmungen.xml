@@ -1,0 +1,99 @@
+<?xml version="1.0" encoding="UTF-8"?><vote_summary>
+  <!-- Die Abstimmungen 00252–00256 entsprechen der echten Liste; 00250, 00251 und 00100 sind Testeinträge. -->
+  <congress>119</congress>
+  <session>2</session>
+  <congress_year>2026</congress_year>
+  <votes>
+    <vote>
+      <vote_number>00256</vote_number>
+      <vote_date>30-Sep</vote_date>
+      <issue>PN1129</issue>
+      <question>On the Nomination
+         </question>
+      <result>Confirmed</result>
+      <vote_tally>
+        <yeas>47</yeas>
+        <nays>41</nays>
+      </vote_tally>
+      <title>Confirmation: Keith Sonderling, of F.L., to be Secretary of Labor</title>
+    </vote>
+    <vote>
+      <vote_number>00255</vote_number>
+      <vote_date>30-Sep</vote_date>
+      <issue>PN1129</issue>
+      <question>On the Cloture Motion
+         </question>
+      <result>Agreed to</result>
+      <vote_tally>
+        <yeas>53</yeas>
+        <nays>47</nays>
+      </vote_tally>
+      <title>Motion to Invoke Cloture: Keith Sonderling to be Secretary of Labor</title>
+    </vote>
+    <vote>
+      <vote_number>00254</vote_number>
+      <vote_date>30-Sep</vote_date>
+      <issue>H.R. 9340</issue>
+      <question>On Cloture on the Motion to Proceed
+         </question>
+      <result>Rejected</result>
+      <vote_tally>
+        <yeas>57</yeas>
+        <nays>43</nays>
+      </vote_tally>
+      <title>Motion to Invoke Cloture on the Motion to Proceed to H.R. 9340; A bill to amend the Public Utility Regulatory Policies Act of 1978 to establish a Federal standard relating to the recovery of the full, incremental costs of upgrades that serve large-load customers, and for other purposes.</title>
+    </vote>
+    <vote>
+      <vote_number>00252</vote_number>
+      <vote_date>29-Sep</vote_date>
+      <issue>S.Res. 852</issue>
+      <question>On the Motion to Discharge
+         </question>
+      <result>Rejected</result>
+      <vote_tally>
+        <yeas>47</yeas>
+        <nays>51</nays>
+      </vote_tally>
+      <title>Motion to Discharge S. Res. 852; A resolution requesting information</title>
+    </vote>
+    <vote>
+      <vote_number>00251</vote_number>
+      <vote_date>26-Sep</vote_date>
+      <issue>S.J.Res. 9</issue>
+      <question>On the Joint Resolution
+         </question>
+      <result>Rejected</result>
+      <vote_tally>
+        <yeas>47</yeas>
+        <nays>52</nays>
+      </vote_tally>
+      <title>S.J.Res. 9; A joint resolution for testing purposes</title>
+    </vote>
+    <vote>
+      <vote_number>00250</vote_number>
+      <vote_date>25-Sep</vote_date>
+      <issue>H.R. 1234</issue>
+      <question>On Passage of the Bill
+         </question>
+      <result>Passed</result>
+      <vote_tally>
+        <yeas>60</yeas>
+        <nays>38</nays>
+      </vote_tally>
+      <title>H.R. 1234 as Amended; Example Test Act</title>
+    </vote>
+    <vote>
+      <vote_number>00100</vote_number>
+      <vote_date>10-Jun</vote_date>
+      <issue>H.R. 77</issue>
+      <question>On Passage of the Bill
+         </question>
+      <result>Passed</result>
+      <vote_tally>
+        <yeas>70</yeas>
+        <nays>28</nays>
+      </vote_tally>
+      <title>H.R. 77; Older Example Act</title>
+    </vote>
+  </votes>
+</vote_summary>

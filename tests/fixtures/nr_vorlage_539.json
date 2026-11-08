@@ -1,0 +1,102 @@
+{
+ "content": {
+  "title": "Allgemeines Verwaltungsverfahrensgesetz, Verwaltungsstrafgesetz, Änderung",
+  "zitation": "539 d.B.",
+  "vote": {
+   "result": [
+    {
+     "text": "FPÖ",
+     "code": "F",
+     "color": "#0052FB",
+     "fraction": 57,
+     "infavor": false
+    },
+    {
+     "text": "ÖVP",
+     "code": "V",
+     "color": "#62C3D0",
+     "fraction": 51,
+     "infavor": true
+    },
+    {
+     "text": "SPÖ",
+     "code": "S",
+     "color": "#FF0000",
+     "fraction": 41,
+     "infavor": true
+    },
+    {
+     "text": "NEOS",
+     "code": "N",
+     "color": "#E3257B",
+     "fraction": 17,
+     "infavor": true
+    },
+    {
+     "text": "GRÜNE",
+     "code": "G",
+     "color": "#69B12E",
+     "fraction": 16,
+     "infavor": false
+    }
+   ],
+   "infavor": true,
+   "code": "fVSNg",
+   "text": "Dafür: V, S, N, Dagegen: F, G",
+   "comment": null
+  },
+  "phase": [
+   {
+    "name": "Einlangen NR",
+    "id": 1,
+    "stages": [
+     {
+      "date": "17.06.2026",
+      "text": "Einlangen im Nationalrat",
+      "priority": 1
+     }
+    ],
+    "documents": []
+   },
+   {
+    "name": "Ausschussberatungen NR",
+    "id": 3,
+    "stages": [],
+    "documents": [],
+    "correspondence": [
+     {
+      "additional": false,
+      "title": "KI in der Verwaltung: Verfassungsausschuss schickt AVG-Novelle ins Plenum",
+      "date": "16.09.2026",
+      "url": "/aktuelles/pk/jahr_2026/pk0824#XXVIII_I_00539"
+     }
+    ]
+   },
+   {
+    "name": "Plenarberatungen NR",
+    "id": 4,
+    "stages": [
+     {
+      "date": "23.09.2026",
+      "text": "Auf der Tagesordnung der 96. Sitzung des Nationalrates"
+     }
+    ],
+    "documents": [],
+    "correspondence": [
+     {
+      "additional": false,
+      "title": "Testmeldung: Vorschau auf die Plenarsitzung",
+      "date": "18.09.2026",
+      "url": "/aktuelles/pk/jahr_2026/pk9998"
+     },
+     {
+      "additional": false,
+      "title": "Testmeldung: Nationalrat beschließt Änderungen im Verwaltungsverfahren",
+      "date": "23.09.2026",
+      "url": "/aktuelles/pk/jahr_2026/pk9999"
+     }
+    ]
+   }
+  ]
+ }
+}
