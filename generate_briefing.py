@@ -176,7 +176,10 @@ def pruefe_feeds(konfiguration, timeout: int) -> int:
         print("\nGesetzgebung")
         gesetzgebung = hole_gesetzgebung(konfiguration, datetime.now().date(), timeout)
         melde_gesetzgebung(gesetzgebung, konfiguration.gesetzgebung.tage)
-        probleme += sum(1 for e in gesetzgebung.values() for s in e.status if not s.ok)
+        # Rot nur, wenn eine Seite ganz ausfällt. Fehlt eine Teilquelle (etwa der
+        # Senat, den senate.gov für automatische Abrufe sperrt), steht das im Log
+        # und auf der Karte — eine dauerhaft rote Prüfung würde nur abstumpfen.
+        probleme += sum(1 for e in gesetzgebung.values() if not e.ok)
 
     print(
         "\nAlles in Ordnung." if not probleme else f"\n{probleme} Feed(s) mit Auffälligkeiten."

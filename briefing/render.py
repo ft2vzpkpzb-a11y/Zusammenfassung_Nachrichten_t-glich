@@ -775,7 +775,7 @@ def _gesetzkarte(ergebnis, heute: date, tage: int, sichtbar: int) -> str:
             f'<div class="fehlerbox"><strong>Daten konnten nicht abgerufen werden</strong>{meldungen}</div>'
         )
     elif ergebnis.fehlermeldungen and not ergebnis.hinweise:
-        fehlend = ", ".join(s.format for s in ergebnis.status if not s.ok)
+        fehlend = "; ".join(f"{s.format} ({s.fehler})" for s in ergebnis.status if not s.ok)
         teile.append(f'<p class="hinweis hinweis--warn">Unvollständig — nicht erreichbar: {escape(fehlend)}</p>')
 
     if ergebnis.beschluesse:

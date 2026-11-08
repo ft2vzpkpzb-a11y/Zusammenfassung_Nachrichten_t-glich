@@ -131,7 +131,7 @@ XXVIII und XXIX — nach der nächsten Wahl ist die neue also schon dabei.
 
 | Was | Quelle | Schlüssel |
 |---|---|---|
-| Abstimmungen im **Senat** | Abstimmungsliste auf senate.gov | keiner |
+| Abstimmungen im **Senat** | Abstimmungsliste auf senate.gov | keiner — seit November 2026 sperrt senate.gov automatische Abrufe (403); die Karte weist dann darauf hin |
 | Abstimmungen im **Repräsentantenhaus** | Abstimmungsdateien auf clerk.house.gov | keiner |
 | **Neue Gesetze** (vom Präsidenten unterzeichnet) | api.congress.gov | `CONGRESS_API_KEY` (sonst `DEMO_KEY`) |
 
