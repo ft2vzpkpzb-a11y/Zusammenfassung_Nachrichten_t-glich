@@ -2,6 +2,8 @@
   "titel": "Tägliche Nachrichten-Zusammenfassung",
   "untertitel": "Politik & Wirtschaft auf einen Blick",
   "zeitzone": "Europe/Vienna",
+  "_ausgaben": "Uhrzeiten (Wiener Zeit), zu denen eine neue Ausgabe erscheint. Der Workflow wird stündlich angestoßen und baut beim ersten Lauf nach jedem Termin.",
+  "ausgaben": ["05:00", "13:00", "21:00"],
   "sichtbare_schlagzeilen": 5,
   "max_schlagzeilen_pro_quelle": 80,
   "rubrikfilter": {

@@ -18,11 +18,15 @@ GitHub Actions baut das Briefing dreimal täglich (05:00, 13:00, 21:00 Wiener
 Zeit), GitHub Pages liefert es aus, am Handy landet es als App auf dem
 Startbildschirm. Kein Server, keine laufenden Kosten. Drei einmalige Schritte:
 
-1. **Branch nach `main` mergen.** Geplante Workflows startet GitHub nur vom
+1. **Pages auf „GitHub Actions“ stellen:** Repo → *Settings* → *Pages* →
+   unter *Build and deployment* bei *Source* „GitHub Actions“ wählen. Die
+   Vorlagen, die GitHub danach anbietet, nicht übernehmen — der Workflow
+   veröffentlicht selbst. (Früher lief die Seite über „Deploy from a branch“;
+   seit dem 6. November 2026 hat GitHub die Pushes des Workflows dort nicht
+   mehr ausgeliefert. Der Workflow veröffentlicht deshalb jetzt direkt.)
+2. **Branch nach `main` mergen.** Geplante Workflows startet GitHub nur vom
    Standard-Branch — solange der Workflow nicht auf `main` liegt, läuft nichts.
-2. **Pages einschalten:** Repo → *Settings* → *Pages* → *Source:* „Deploy from a
-   branch“ → Branch `main`, Ordner `/docs` → *Save*. (Der Ordner `docs/`
-   entsteht beim ersten Workflow-Lauf, den das Mergen direkt auslöst.)
+   Das Mergen löst sofort einen ersten Lauf aus.
 3. **Schlüssel hinterlegen** (beide optional): *Settings* → *Secrets and
    variables* → *Actions* → *New repository secret*.
    - `ANTHROPIC_API_KEY` — für die deutsche Übersetzung der FT und der
@@ -54,17 +58,27 @@ Was am Handy sonst noch anders ist:
   stehen (zum Springen antippen, seitlich wischen für mehr); Suche und Knöpfe
   scrollen mit weg. Ein runder Knopf unten rechts springt zurück nach oben.
 
-**Die Zeiten ändern:** in `.github/workflows/briefing.yml`. GitHub kennt nur UTC
-und keine Sommerzeit — deshalb stehen dort zwei `cron`-Zeilen (eine je
-Zeitumstellung), und der erste Schritt des Jobs lässt nur die Läufe durch, die
-auf 05:00, 13:00 oder 21:00 Wiener Zeit fallen. Für andere Zeiten beide
-`cron`-Zeilen **und** die Stundenliste im Schritt „Zielzeit prüfen" anpassen.
-Über *Actions* → *Briefing bauen* → *Run workflow* lässt sich jederzeit von Hand
-nachbauen — ein solcher Lauf wird nie übersprungen.
+**Wann eine neue Ausgabe erscheint:** zu den Terminen unter `"ausgaben"` in
+`config/feeds.json` (Wiener Zeit, Standard 05:00, 13:00, 21:00 — die
+Sommerzeit ist damit automatisch berücksichtigt). Der Workflow wird stündlich
+angestoßen; der Schritt „Fällig?“ baut, sobald ein Termin erreicht ist und
+seither noch keine Ausgabe erschien. Woran er das erkennt: an `docs/stand.txt`,
+dem Zeitpunkt der letzten Ausgabe. Über *Actions* → *Briefing bauen* →
+*Run workflow* lässt sich jederzeit von Hand nachbauen.
 
-> Geplante Läufe startet GitHub je nach Auslastung ein paar Minuten später.
-> Verzögert sich einer um mehr als eine Stunde, fällt er aus dem Zeitfenster und
-> wird übersprungen; der nächste Lauf acht Stunden später baut wieder.
+> **Warum stündlich?** GitHub startet geplante Läufe nicht pünktlich. Die Läufe
+> für 05:00 UTC kamen im Oktober/November 2026 zwischen 09:20 und 13:20 UTC an —
+> vier bis acht Stunden zu spät. Ein Workflow, der nur zur Zielstunde baut, käme
+> so fast nie zum Zug. Mit einem Anstoß pro Stunde baut der erste Lauf nach dem
+> Termin; wie bald der kommt, hängt davon ab, wie GitHub die Läufe gerade
+> verteilt. Die übrigen Läufe der Stunde enden nach wenigen Sekunden mit
+> „nichts zu tun“ — im Actions-Tab stehen deshalb viele kurze Läufe.
+>
+> **Auf die Minute genau** geht es nur mit einem externen Wecker, der den
+> Workflow zur vollen Stunde über die GitHub-API startet (etwa cron-job.org mit
+> einem Token, das nur für dieses Repository *Actions: Read and write* darf):
+> `POST https://api.github.com/repos/ft2vzpkpzb-a11y/Zusammenfassung_Nachrichten_t-glich/actions/workflows/briefing.yml/dispatches`
+> mit dem Inhalt `{"ref": "main"}`.
 
 > **Zur Sichtbarkeit:** Das Repo ist öffentlich, die Pages-Seite ist damit für
 > jeden erreichbar, der die Adresse kennt. Inhalt sind ausschließlich
@@ -81,7 +95,7 @@ nachbauen — ein solcher Lauf wird nie übersprungen.
 | **Erste fünf offen** | Je Quelle sind die fünf aktuellsten Schlagzeilen sichtbar; der Rest (auch 50+) steckt in einem Aufklapper und ist einen Klick entfernt. Über `sichtbare_schlagzeilen` einstellbar. |
 | **Politik & Wirtschaft** | Alle Quellen außer der FT sind auf diese beiden Ressorts eingegrenzt — über Feed-Kategorien, `dc:subject` und den Link-Pfad. Siehe [Nur Politik & Wirtschaft](#nur-politik--wirtschaft). |
 | **Quellen** | ORF.at, DER STANDARD, Die Presse, APA-OTS, tagesschau, SPIEGEL, ZEIT ONLINE, Financial Times, The Wall Street Journal, Bloomberg, BBC News, The Guardian |
-| **Dreimal täglich** | Der Workflow baut um **05:00, 13:00 und 21:00** Wiener Zeit (alle acht Stunden). |
+| **Dreimal täglich** | Neue Ausgaben ab **05:00, 13:00 und 21:00** Wiener Zeit (alle acht Stunden) — beim ersten Workflow-Lauf nach dem Termin. |
 | **Financial Times komplett** | Die FT wird aus drei Feeds (Home, World, Companies) zusammengeführt, dedupliziert und als hervorgehobene Karte oben angezeigt — deutsche Übersetzung als Haupttitel, englisches Original klein darunter. |
 | **Übersetzung** | Über die Claude Messages API (`claude-opus-5`, Structured Outputs). Ergebnisse landen im Cache, ein zweiter Lauf am selben Tag kostet nichts. Ohne API-Key erscheinen die Schlagzeilen im Original — das Briefing bricht nicht ab. |
 | **Feed-Status** | Unten steht je Feed: Status, erkanntes Format, Anzahl Einträge, Dauer. Eine leere Quelle wird als Fehler angezeigt statt still zu verschwinden. |
@@ -349,7 +363,7 @@ funktioniert, steht nach dem nächsten Lauf in der Statustabelle.
 python3 -m unittest discover -s tests -v
 ```
 
-102 Tests, keine Netzwerkzugriffe: Parser für RDF/RSS 2.0/Atom, Datums- und
+115 Tests, keine Netzwerkzugriffe: Parser für RDF/RSS 2.0/Atom, Datums- und
 Link-Ermittlung, Deduplizierung, Fehlerstatus, Rendering (5 sichtbar +
 Aufklapper, Übersetzungsreihenfolge, HTML-Maskierung), Konfigurationsprüfung,
 Übersetzung mit Stub-Client (Structured Outputs, Cache, Verhalten ohne API-Key),
@@ -357,7 +371,8 @@ Website-Modus (Archiv-Aufräumen, Manifest, Service Worker) sowie der
 Rubrikfilter (Kategorien, `dc:subject`, Pfad-Signale, Sperr- vor Erlaubt-Liste),
 die Ausweichadressen und die Gesetzgebung (Filter-API des Parlaments,
 Abstimmungslisten von Senat und Repräsentantenhaus, Suche nach der jüngsten
-House-Abstimmung, neue Gesetze, Schlüssel nie in der Seite, Darstellung).
+House-Abstimmung, neue Gesetze, Schlüssel nie in der Seite, Darstellung) und
+die Zeitsteuerung (verspätete Läufe, Zeitumstellung, `stand.txt`).
 Dieselben Tests laufen im Workflow vor jedem Veröffentlichen.
 
 ## Aufbau
@@ -375,6 +390,7 @@ briefing/pwa.py          Manifest, Service Worker, App-Symbole fürs Handy
 briefing/demo.py         Beispieldaten für --demo
 config/feeds.json        Quellen und Einstellungen
 assets/                  App-Symbole (Quelle: icon.svg)
-docs/                    Wird vom Workflow erzeugt — das ist die Pages-Website
-.github/workflows/       Briefing (05:00, 13:00, 21:00 Wien), Feed-Prüfung, Vorschau
+briefing/zeitplan.py     Ist eine neue Ausgabe fällig? (für den stündlichen Workflow)
+docs/                    Wird vom Workflow erzeugt: Website, Archiv, stand.txt
+.github/workflows/       Briefing (stündlich, baut zu den Terminen), Feed-Prüfung, Vorschau
 ```

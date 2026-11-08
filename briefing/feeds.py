@@ -83,6 +83,7 @@ class Konfiguration:
     titel: str = "Tägliche Nachrichten-Zusammenfassung"
     untertitel: str = ""
     zeitzone: str = "Europe/Vienna"
+    ausgaben: list[str] = field(default_factory=lambda: ["05:00", "13:00", "21:00"])
     sichtbare_schlagzeilen: int = 5
     max_schlagzeilen_pro_quelle: int = 80
     uebersetzung: Uebersetzungsoptionen = field(default_factory=Uebersetzungsoptionen)
@@ -135,6 +136,7 @@ def lade_konfiguration(pfad: str | Path) -> Konfiguration:
         titel=rohdaten.get("titel", "Tägliche Nachrichten-Zusammenfassung"),
         untertitel=rohdaten.get("untertitel", ""),
         zeitzone=rohdaten.get("zeitzone", "Europe/Vienna"),
+        ausgaben=list(rohdaten.get("ausgaben") or ["05:00", "13:00", "21:00"]),
         sichtbare_schlagzeilen=int(rohdaten.get("sichtbare_schlagzeilen", 5)),
         max_schlagzeilen_pro_quelle=int(rohdaten.get("max_schlagzeilen_pro_quelle", 80)),
         uebersetzung=Uebersetzungsoptionen(

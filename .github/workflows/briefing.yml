@@ -2,13 +2,15 @@ name: Briefing bauen
 
 on:
   schedule:
-    # Ziel: alle acht Stunden — 05:00, 13:00 und 21:00 Wiener Zeit.
-    # GitHub kennt nur UTC und keine Sommerzeit, deshalb stehen hier beide
-    # Umrechnungen. Der erste Schritt im Job lässt nur die Läufe durch, die
-    # tatsächlich auf die Zielstunde fallen.
-    - cron: "0 3,11,19 * * *" # Sommerzeit (MESZ = UTC+2)
-    - cron: "0 4,12,20 * * *" # Winterzeit (MEZ = UTC+1)
-  workflow_dispatch: # Knopf „Run workflow“ im Actions-Tab
+    # Stündlich anstoßen, zu einer krummen Minute. Ob wirklich gebaut wird,
+    # entscheidet der Schritt „Fällig?“: sobald einer der Ausgabetermine aus
+    # config/feeds.json ("ausgaben", Wiener Zeit — 05:00, 13:00, 21:00) erreicht
+    # ist und seither noch keine Ausgabe erschien.
+    # Warum nicht einfach zur Zielzeit? GitHub startet geplante Läufe oft Stunden
+    # zu spät — gemessen: 4 bis 8 Stunden bei einem Termin zur vollen Stunde.
+    # Mit einem Anstoß pro Stunde kommt nach jedem Termin bald ein Lauf an.
+    - cron: "23 * * * *"
+  workflow_dispatch: # Knopf „Run workflow“ im Actions-Tab — baut immer
   push:
     branches: [main]
     paths:
@@ -18,7 +20,9 @@ on:
       - ".github/workflows/briefing.yml"
 
 permissions:
-  contents: write
+  contents: write # Archiv und Stand ins Repository schreiben
+  pages: write # auf GitHub Pages veröffentlichen
+  id-token: write # … dafür braucht deploy-pages ein Token
 
 concurrency:
   group: briefing
@@ -27,40 +31,39 @@ concurrency:
 jobs:
   bauen:
     runs-on: ubuntu-latest
+    outputs:
+      faellig: ${{ steps.zeit.outputs.faellig }}
     steps:
-      - name: Zielzeit prüfen
+      - uses: actions/checkout@v4
+
+      - name: Neuesten Stand holen
+        # Ein Lauf kann Stunden in der Warteschlange gestanden haben — dann ist
+        # der Commit, mit dem er angestoßen wurde, längst überholt.
+        run: |
+          git fetch --quiet --depth=1 origin main
+          git reset --quiet --hard FETCH_HEAD
+
+      - name: Fällig?
         id: zeit
         run: |
-          stunde=$(TZ=Europe/Vienna date +%H)
-          echo "Wiener Zeit: $(TZ=Europe/Vienna date '+%d.%m.%Y %H:%M')"
           if [ "${{ github.event_name }}" != "schedule" ]; then
-            echo "Kein geplanter Lauf — wird gebaut."
+            echo "Ausgelöst durch „${{ github.event_name }}“ — wird gebaut."
+            echo "faellig=true" >>"$GITHUB_OUTPUT"
             exit 0
           fi
-          case "$stunde" in
-            05 | 13 | 21)
-              echo "Zielstunde erreicht — wird gebaut."
-              ;;
-            *)
-              echo "Dieser Lauf gehört zur anderen Zeitzonen-Zeile — übersprungen."
-              echo "ueberspringen=true" >>"$GITHUB_OUTPUT"
-              ;;
-          esac
-
-      - uses: actions/checkout@v4
-        if: steps.zeit.outputs.ueberspringen != 'true'
+          python3 -m briefing.zeitplan "$(cat docs/stand.txt 2>/dev/null)" >>"$GITHUB_OUTPUT"
 
       - uses: actions/setup-python@v5
-        if: steps.zeit.outputs.ueberspringen != 'true'
+        if: steps.zeit.outputs.faellig == 'true'
         with:
           python-version: "3.12"
 
       - name: Abhängigkeiten installieren
-        if: steps.zeit.outputs.ueberspringen != 'true'
+        if: steps.zeit.outputs.faellig == 'true'
         run: pip install -r requirements.txt
 
       - name: Cache laden (Übersetzungen, letzte House-Abstimmung)
-        if: steps.zeit.outputs.ueberspringen != 'true'
+        if: steps.zeit.outputs.faellig == 'true'
         uses: actions/cache@v4
         with:
           path: cache
@@ -68,11 +71,11 @@ jobs:
           restore-keys: uebersetzungen-
 
       - name: Tests
-        if: steps.zeit.outputs.ueberspringen != 'true'
+        if: steps.zeit.outputs.faellig == 'true'
         run: python3 -m unittest discover -s tests
 
       - name: Briefing erzeugen
-        if: steps.zeit.outputs.ueberspringen != 'true'
+        if: steps.zeit.outputs.faellig == 'true'
         env:
           # Ohne dieses Secret bleiben die FT-Schlagzeilen englisch —
           # das Briefing wird trotzdem gebaut.
@@ -82,17 +85,40 @@ jobs:
           CONGRESS_API_KEY: ${{ secrets.CONGRESS_API_KEY }}
         run: python3 generate_briefing.py --site docs --archiv-tage 30
 
-      - name: Veröffentlichen
-        if: steps.zeit.outputs.ueberspringen != 'true'
+      - name: Archiv sichern
+        # docs/ liegt im Repository: dort bleiben die früheren Ausgaben und der
+        # Stand (docs/stand.txt) für den nächsten Lauf erhalten.
+        if: steps.zeit.outputs.faellig == 'true'
         run: |
           git config user.name "briefing-bot"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git add docs
           if git diff --quiet --cached; then
-            echo "Keine Änderung — nichts zu veröffentlichen."
+            echo "Keine Änderung — nichts zu sichern."
           else
             git commit -m "Briefing $(TZ=Europe/Vienna date '+%Y-%m-%d %H:%M')"
-            # Zwischen Bauen und Pushen kann ein anderer Lauf committet haben.
+            # Zwischen Bauen und Pushen kann jemand anderes gepusht haben.
             git pull --rebase origin main
-            git push
+            git push origin HEAD:main
           fi
+
+      - name: Seite für GitHub Pages verpacken
+        if: steps.zeit.outputs.faellig == 'true'
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: docs
+
+  veroeffentlichen:
+    # Eigener Job, damit nur echte Ausgaben als Veröffentlichung zählen — nicht
+    # die stündlichen Anstöße, die nichts zu tun haben.
+    needs: bauen
+    if: needs.bauen.outputs.faellig == 'true'
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.veroeffentlichung.outputs.page_url }}
+    steps:
+      - name: Auf GitHub Pages veröffentlichen
+        id: veroeffentlichung
+        # Voraussetzung: Settings → Pages → Source „GitHub Actions“.
+        uses: actions/deploy-pages@v4

@@ -210,6 +210,8 @@ def baue_website(
     (verzeichnis / "index.html").write_text(html, encoding="utf-8")
     (archiv_ordner / f"{jetzt:%Y-%m-%d}.html").write_text(html, encoding="utf-8")
     (verzeichnis / ".nojekyll").write_text("", encoding="utf-8")
+    # Zeitpunkt dieser Ausgabe — daran erkennt der Workflow, ob die nächste fällig ist.
+    (verzeichnis / "stand.txt").write_text(jetzt.isoformat(timespec="seconds") + "\n", encoding="utf-8")
     pwa.schreibe_dateien(verzeichnis, titel)
     return verzeichnis / "index.html"
 
