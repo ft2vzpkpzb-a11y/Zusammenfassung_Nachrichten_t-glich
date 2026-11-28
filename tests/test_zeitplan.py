@@ -95,7 +95,9 @@ class TestStandDatei(unittest.TestCase):
 
         jetzt = wien(2026, 11, 8, 5, 23, 10)
         with tempfile.TemporaryDirectory() as ordner:
-            generate_briefing.baue_website(Path(ordner), lambda archiv: "<html></html>", jetzt, "Briefing", 30)
+            generate_briefing.baue_website(
+                Path(ordner), lambda archiv, wurzel="": "<html></html>", jetzt, "Briefing", 30
+            )
             inhalt = (Path(ordner) / "stand.txt").read_text(encoding="utf-8")
         self.assertEqual(zeitplan.lies_stand(inhalt), jetzt)
 

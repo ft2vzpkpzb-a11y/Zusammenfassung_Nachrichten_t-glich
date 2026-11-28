@@ -862,12 +862,12 @@ def _statusabschnitt(
     )
 
 
-def _archivabschnitt(archiv: list[date]) -> str:
+def _archivabschnitt(archiv: list[date], wurzel: str = "") -> str:
     """Liste vergangener Ausgaben — nur im Web-Modus vorhanden."""
     if not archiv:
         return ""
     eintraege = "".join(
-        f'<li><a href="archiv/{tag:%Y-%m-%d}.html">'
+        f'<li><a href="{wurzel}archiv/{tag:%Y-%m-%d}.html">'
         f"{WOCHENTAGE[tag.weekday()][:2]}, {tag.day}. {MONATE[tag.month - 1][:3]}</a></li>"
         for tag in archiv
     )
@@ -890,12 +890,15 @@ def rendere_briefing(
     web: bool = False,
     archiv: list[date] | None = None,
     gesetzgebung: dict | None = None,
+    wurzel: str = "",
 ) -> str:
     """Baut die vollständige HTML-Seite.
 
     ``web=True`` ergänzt Manifest, Symbole und Service-Worker-Registrierung,
     damit die Seite am Handy als App auf den Startbildschirm gelegt werden kann.
     ``gesetzgebung`` (Nationalrat, US-Kongress) steht ganz oben.
+    ``wurzel`` ist der Weg zur Website-Wurzel — "../" für die Kopie im Ordner
+    archiv/, sonst zeigen Symbole, Manifest und Archivlinks dort ins Leere.
     """
     quellen = konfiguration.quellen
     sichtbar = konfiguration.sichtbare_schlagzeilen
@@ -993,8 +996,8 @@ def rendere_briefing(
     titel = f"{konfiguration.titel} — {jetzt:%d.%m.%Y}"
     symbol = pwa.leisten_symbol()
     symbol_stil = f' style="--symbol: url({symbol})"' if symbol else ""
-    app_kopf = pwa.kopfzeilen() if web else ""
-    app_skript = pwa.registrierung() if web else ""
+    app_kopf = pwa.kopfzeilen(wurzel) if web else ""
+    app_skript = pwa.registrierung(wurzel) if web else ""
     return f"""<!doctype html>
 <html lang="de">
 <head>
@@ -1031,7 +1034,7 @@ def rendere_briefing(
 </div>
 
 {"".join(abschnitte)}
-{_archivabschnitt(archiv or [])}
+{_archivabschnitt(archiv or [], wurzel)}
 {_statusabschnitt(ergebnisse, quellen, uebersetzung_hinweis, gesetzgebung)}
 <p class="fuss">Erzeugt am {jetzt:%d.%m.%Y um %H:%M} Uhr ({escape(konfiguration.zeitzone)}). Je Quelle
 sind die {sichtbar} aktuellsten Einträge sichtbar, alle weiteren stehen im Aufklapper.</p>
