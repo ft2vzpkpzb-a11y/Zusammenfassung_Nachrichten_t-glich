@@ -154,13 +154,8 @@ a { color: var(--link); text-decoration: none; }
 }
 .leiste__symbol {
   width: 26px; height: 26px; border-radius: 7px; flex: none;
-  background: linear-gradient(160deg, #ff5f6d 0%, #e3192d 100%);
+  background: center / cover no-repeat var(--symbol, linear-gradient(160deg, #ff5f6d 0%, #e3192d 100%));
   box-shadow: inset 0 0 0 .5px rgba(0,0,0,.08);
-  position: relative;
-}
-.leiste__symbol::after {
-  content: ""; position: absolute; left: 6px; right: 6px; top: 7px; height: 12px;
-  background: linear-gradient(#fff 0 0) top/100% 3px no-repeat, linear-gradient(rgba(255,255,255,.75) 0 0) 0 6px/100% 2px no-repeat, linear-gradient(rgba(255,255,255,.75) 0 0) 0 10px/70% 2px no-repeat;
 }
 .leiste__links {
   display: flex; gap: 22px; flex: 1; min-width: 0; overflow-x: auto; scrollbar-width: none;
@@ -996,6 +991,8 @@ def rendere_briefing(
         else ""
     )
     titel = f"{konfiguration.titel} — {jetzt:%d.%m.%Y}"
+    symbol = pwa.leisten_symbol()
+    symbol_stil = f' style="--symbol: url({symbol})"' if symbol else ""
     app_kopf = pwa.kopfzeilen() if web else ""
     app_skript = pwa.registrierung() if web else ""
     return f"""<!doctype html>
@@ -1011,7 +1008,7 @@ def rendere_briefing(
 <body>
 <nav class="leiste" aria-label="Rubriken">
   <div class="leiste__innen">
-    <a class="leiste__marke" href="#oben"><span class="leiste__symbol" aria-hidden="true"></span>Briefing</a>
+    <a class="leiste__marke" href="#oben"><span class="leiste__symbol" aria-hidden="true"{symbol_stil}></span>Briefing</a>
     <div class="leiste__links">{links}</div>
     <button id="theme" class="symbolknopf" type="button" aria-label="Hell- oder Dunkelmodus" title="Hell / Dunkel">{SYMBOL_HELLDUNKEL}</button>
   </div>

@@ -50,8 +50,9 @@ class TestWebsite(unittest.TestCase):
 
             self.assertTrue(index.exists())
             self.assertTrue((ordner / "archiv" / "2026-07-30.html").exists())
-            for datei in ("manifest.webmanifest", "sw.js", "icon-192.png",
-                          "icon-512.png", "apple-touch-icon.png", ".nojekyll"):
+            for datei in ("manifest.webmanifest", "sw.js", "icon-192.png", "icon-512.png",
+                          "icon-maskable-512.png", "apple-touch-icon.png", "favicon-32.png",
+                          ".nojekyll"):
                 self.assertTrue((ordner / datei).exists(), f"{datei} fehlt")
 
     def test_alte_ausgaben_werden_entfernt_neuere_bleiben(self):
@@ -104,6 +105,7 @@ class TestAppKopfzeilen(unittest.TestCase):
 
         self.assertIn('rel="manifest"', html)
         self.assertIn('rel="apple-touch-icon"', html)
+        self.assertIn('rel="icon" href="favicon-32.png"', html)
         self.assertIn("apple-mobile-web-app-capable", html)
         self.assertIn("serviceWorker", html)
         self.assertIn('name="theme-color"', html)
@@ -124,6 +126,15 @@ class TestAppKopfzeilen(unittest.TestCase):
         groessen = {symbol["sizes"] for symbol in daten["icons"]}
         self.assertEqual(groessen, {"192x192", "512x512"})
         self.assertTrue(any(s.get("purpose") == "maskable" for s in daten["icons"]))
+        # Jedes Symbol im Manifest muss es als Datei geben, sonst zeigt das Handy ein leeres Feld.
+        for symbol in daten["icons"]:
+            self.assertIn(symbol["src"], pwa.SYMBOLE)
+            self.assertTrue((pwa.ASSETS / symbol["src"]).exists(), symbol["src"])
+
+    def test_navigationsleiste_traegt_das_symbol_eingebettet(self):
+        konfiguration, ergebnisse = beispiel_ergebnisse()
+        html = rendere_briefing(konfiguration, ergebnisse, JETZT)
+        self.assertIn('class="leiste__symbol" aria-hidden="true" style="--symbol: url(data:image/jpeg;base64,', html)
 
     def test_service_worker_legt_vorrat_an(self):
         # Ohne Vorrat beim Installieren wäre die Seite beim ersten Offline-Start leer.

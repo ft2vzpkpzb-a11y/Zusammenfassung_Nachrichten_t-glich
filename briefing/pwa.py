@@ -7,19 +7,29 @@ zuletzt geladene Briefing zeigt — praktisch in der U-Bahn.
 
 from __future__ import annotations
 
+import base64
 import json
 import shutil
+from functools import lru_cache
 from pathlib import Path
 
 ASSETS = Path(__file__).resolve().parent.parent / "assets"
-SYMBOLE = ["icon-192.png", "icon-512.png", "apple-touch-icon.png", "icon.svg"]
+# Das Symbol stammt aus einer 1024-px-Vorlage (mit Higgsfield erzeugt); alle
+# Größen sind daraus verkleinert. „maskable“ hat Rand für Androids Kreismaske.
+SYMBOLE = [
+    "icon-192.png",
+    "icon-512.png",
+    "icon-maskable-512.png",
+    "apple-touch-icon.png",
+    "favicon-32.png",
+]
 
 # Netz zuerst: online immer das frische Briefing, offline das zuletzt geladene.
 SERVICE_WORKER = """
-const CACHE = 'briefing-v2';
+const CACHE = 'briefing-v3';
 const VORRAT = [
   './index.html', './manifest.webmanifest',
-  './icon-192.png', './icon-512.png', './apple-touch-icon.png'
+  './icon-192.png', './icon-512.png', './apple-touch-icon.png', './favicon-32.png'
 ];
 
 self.addEventListener('install', (e) => {
@@ -77,7 +87,7 @@ def manifest(titel: str) -> str:
                 {"src": "icon-192.png", "sizes": "192x192", "type": "image/png"},
                 {"src": "icon-512.png", "sizes": "512x512", "type": "image/png"},
                 {
-                    "src": "icon-512.png",
+                    "src": "icon-maskable-512.png",
                     "sizes": "512x512",
                     "type": "image/png",
                     "purpose": "maskable",
@@ -95,13 +105,23 @@ def kopfzeilen() -> str:
 <link rel="manifest" href="manifest.webmanifest">
 <meta name="theme-color" media="(prefers-color-scheme: light)" content="#f5f5f7">
 <meta name="theme-color" media="(prefers-color-scheme: dark)" content="#000000">
-<link rel="icon" href="icon.svg" type="image/svg+xml">
+<link rel="icon" href="favicon-32.png" sizes="32x32" type="image/png">
 <link rel="apple-touch-icon" href="apple-touch-icon.png">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-title" content="Briefing">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 """.strip()
+
+
+@lru_cache(maxsize=1)
+def leisten_symbol() -> str:
+    """Das Symbol für die Navigationsleiste als data:-URI — so bleibt jede Seite
+    eigenständig, auch die Einzeldatei und die Archivseiten. Leer, wenn es fehlt."""
+    datei = ASSETS / "leiste-symbol.jpg"
+    if not datei.exists():
+        return ""
+    return "data:image/jpeg;base64," + base64.b64encode(datei.read_bytes()).decode("ascii")
 
 
 def registrierung() -> str:
