@@ -190,7 +190,11 @@ def pruefe_feeds(konfiguration, timeout: int) -> int:
 def baue_website(
     verzeichnis: Path, html_bauen, jetzt: datetime, titel: str, archiv_tage: int
 ) -> Path:
-    """Schreibt index.html, die Tagesausgabe ins Archiv und die App-Dateien."""
+    """Schreibt index.html, die Tagesausgabe ins Archiv und die App-Dateien.
+
+    ``html_bauen(archiv, wurzel="")`` liefert die Seite; ``wurzel`` ist der Weg
+    von der Seite zur Website-Wurzel.
+    """
     archiv_ordner = verzeichnis / "archiv"
     archiv_ordner.mkdir(parents=True, exist_ok=True)
 
@@ -209,9 +213,12 @@ def baue_website(
         vorhanden.append(tag)
     vorhanden.sort(reverse=True)
 
-    html = html_bauen(vorhanden)
-    (verzeichnis / "index.html").write_text(html, encoding="utf-8")
-    (archiv_ordner / f"{jetzt:%Y-%m-%d}.html").write_text(html, encoding="utf-8")
+    (verzeichnis / "index.html").write_text(html_bauen(vorhanden), encoding="utf-8")
+    # Die Archivkopie liegt eine Ebene tiefer: Symbole, Manifest, Service Worker
+    # und die Links auf andere Tage brauchen dort ein "../".
+    (archiv_ordner / f"{jetzt:%Y-%m-%d}.html").write_text(
+        html_bauen(vorhanden, wurzel="../"), encoding="utf-8"
+    )
     (verzeichnis / ".nojekyll").write_text("", encoding="utf-8")
     # Zeitpunkt dieser Ausgabe — daran erkennt der Workflow, ob die nächste fällig ist.
     (verzeichnis / "stand.txt").write_text(jetzt.isoformat(timespec="seconds") + "\n", encoding="utf-8")
@@ -304,10 +311,10 @@ def main() -> int:
 
     # --- Rendern ---
     if args.site:
-        def html_bauen(archiv: list[date]) -> str:
+        def html_bauen(archiv: list[date], wurzel: str = "") -> str:
             return rendere_briefing(
                 konfiguration, ergebnisse, jetzt, hinweis, demo=args.demo, web=True, archiv=archiv,
-                gesetzgebung=gesetzgebung,
+                gesetzgebung=gesetzgebung, wurzel=wurzel,
             )
 
         ziel = baue_website(

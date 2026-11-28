@@ -2,7 +2,9 @@
 
 from __future__ import annotations
 
+import hashlib
 import json
+import re
 import sys
 import tempfile
 import unittest
@@ -36,9 +38,9 @@ class TestWebsite(unittest.TestCase):
     def _bauen(self, ordner: Path, jetzt: datetime = JETZT, archiv_tage: int = 30):
         konfiguration, ergebnisse = beispiel_ergebnisse()
 
-        def html_bauen(archiv):
+        def html_bauen(archiv, wurzel=""):
             return rendere_briefing(
-                konfiguration, ergebnisse, jetzt, web=True, archiv=archiv
+                konfiguration, ergebnisse, jetzt, web=True, archiv=archiv, wurzel=wurzel
             )
 
         return baue_website(ordner, html_bauen, jetzt, konfiguration.titel, archiv_tage)
@@ -87,6 +89,28 @@ class TestWebsite(unittest.TestCase):
             # Die heutige Ausgabe verlinkt sich nicht selbst.
             self.assertNotIn(f'href="archiv/{JETZT.date()}.html"', html)
 
+    def test_verweise_finden_ihre_dateien_auch_aus_dem_archiv(self):
+        # Die Archivkopie liegt in archiv/ — dort zeigten Symbol, Manifest,
+        # Service Worker und die Links auf andere Tage früher ins Leere.
+        with tempfile.TemporaryDirectory() as tmp:
+            ordner = Path(tmp) / "docs"
+            (ordner / "archiv").mkdir(parents=True)
+            gestern = JETZT.date() - timedelta(days=1)
+            (ordner / "archiv" / f"{gestern}.html").write_text("alt", encoding="utf-8")
+            self._bauen(ordner)
+
+            for seite in (ordner / "index.html", ordner / "archiv" / f"{JETZT.date()}.html"):
+                html = seite.read_text(encoding="utf-8")
+                verweise = re.findall(r'(?:href|src)="([^"#][^"]*)"', html)
+                verweise += re.findall(r"register\('([^']+)'\)", html)
+                lokal = [v for v in verweise if not re.match(r"(?:[a-z]+:|//)", v)]
+                for erwartet in ("manifest.webmanifest", "favicon-32.png", "apple-touch-icon.png",
+                                 "sw.js", f"archiv/{gestern}.html"):
+                    self.assertIn(erwartet, " ".join(lokal), seite.name)
+                for verweis in lokal:
+                    ziel = (seite.parent / verweis.split("?")[0]).resolve()
+                    self.assertTrue(ziel.exists(), f"{seite.name}: {verweis} führt ins Leere")
+
     def test_zweiter_lauf_am_selben_tag_ueberschreibt(self):
         with tempfile.TemporaryDirectory() as tmp:
             ordner = Path(tmp) / "docs"
@@ -105,10 +129,19 @@ class TestAppKopfzeilen(unittest.TestCase):
 
         self.assertIn('rel="manifest"', html)
         self.assertIn('rel="apple-touch-icon"', html)
-        self.assertIn('rel="icon" href="favicon-32.png"', html)
+        self.assertIn('rel="icon" href="favicon-32.png?v=', html)
         self.assertIn("apple-mobile-web-app-capable", html)
         self.assertIn("serviceWorker", html)
         self.assertIn('name="theme-color"', html)
+
+    def test_symboladressen_tragen_die_pruefsumme_des_bildes(self):
+        # Safari lädt ein Symbol unter bekannter Adresse nicht neu — ein neues Bild
+        # braucht deshalb eine neue Adresse, sonst bleibt im Tab das alte stehen.
+        konfiguration, ergebnisse = beispiel_ergebnisse()
+        html = rendere_briefing(konfiguration, ergebnisse, JETZT, web=True)
+        for name in ("favicon-32.png", "apple-touch-icon.png"):
+            pruefsumme = hashlib.sha256((pwa.ASSETS / name).read_bytes()).hexdigest()[:8]
+            self.assertIn(f'href="{name}?v={pruefsumme}"', html)
 
     def test_ohne_web_modus_bleibt_die_datei_eigenstaendig(self):
         konfiguration, ergebnisse = beispiel_ergebnisse()
@@ -128,8 +161,9 @@ class TestAppKopfzeilen(unittest.TestCase):
         self.assertTrue(any(s.get("purpose") == "maskable" for s in daten["icons"]))
         # Jedes Symbol im Manifest muss es als Datei geben, sonst zeigt das Handy ein leeres Feld.
         for symbol in daten["icons"]:
-            self.assertIn(symbol["src"], pwa.SYMBOLE)
-            self.assertTrue((pwa.ASSETS / symbol["src"]).exists(), symbol["src"])
+            datei = symbol["src"].split("?")[0]
+            self.assertIn(datei, pwa.SYMBOLE)
+            self.assertTrue((pwa.ASSETS / datei).exists(), symbol["src"])
 
     def test_navigationsleiste_traegt_das_symbol_eingebettet(self):
         konfiguration, ergebnisse = beispiel_ergebnisse()
@@ -138,9 +172,13 @@ class TestAppKopfzeilen(unittest.TestCase):
 
     def test_service_worker_legt_vorrat_an(self):
         # Ohne Vorrat beim Installieren wäre die Seite beim ersten Offline-Start leer.
-        self.assertIn("./index.html", pwa.SERVICE_WORKER)
-        self.assertIn("install", pwa.SERVICE_WORKER)
-        self.assertIn("caches.open(CACHE)", pwa.SERVICE_WORKER)
+        skript = pwa.service_worker()
+        vorrat = json.loads(re.search(r"const VORRAT = (\[.*?\]);", skript).group(1))
+        self.assertIn("./index.html", vorrat)
+        # Dieselbe Adresse wie in den Seiten — sonst findet er das Symbol offline nicht.
+        self.assertIn("./" + pwa.adresse("favicon-32.png"), vorrat)
+        self.assertIn("install", skript)
+        self.assertIn("caches.open(CACHE)", skript)
 
     def test_symbole_liegen_im_repo(self):
         for name in pwa.SYMBOLE:

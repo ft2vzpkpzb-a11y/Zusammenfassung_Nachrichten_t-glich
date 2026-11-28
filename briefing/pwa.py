@@ -8,6 +8,7 @@ zuletzt geladene Briefing zeigt — praktisch in der U-Bahn.
 from __future__ import annotations
 
 import base64
+import hashlib
 import json
 import shutil
 from functools import lru_cache
@@ -24,13 +25,27 @@ SYMBOLE = [
     "favicon-32.png",
 ]
 
+
+@lru_cache(maxsize=None)
+def adresse(name: str) -> str:
+    """Dateiname mit Prüfsumme des Inhalts, etwa ``favicon-32.png?v=1a2b3c4d``.
+
+    Safari merkt sich Symbole unter ihrer Adresse und fragt dort nicht neu an —
+    ein neues Bild unter altem Namen bliebe in den Tabs unsichtbar. Mit der
+    Prüfsumme bekommt jedes neue Bild eine neue Adresse; GitHub Pages übergeht
+    den Zusatz und liefert einfach die Datei.
+    """
+    datei = ASSETS / name
+    if not datei.exists():
+        return name
+    return f"{name}?v={hashlib.sha256(datei.read_bytes()).hexdigest()[:8]}"
+
+
 # Netz zuerst: online immer das frische Briefing, offline das zuletzt geladene.
-SERVICE_WORKER = """
-const CACHE = 'briefing-v3';
-const VORRAT = [
-  './index.html', './manifest.webmanifest',
-  './icon-192.png', './icon-512.png', './apple-touch-icon.png', './favicon-32.png'
-];
+# __VORRAT__ füllt service_worker() mit den Adressen, unter denen die Seiten anfragen.
+_SW_VORLAGE = """
+const CACHE = 'briefing-v4';
+const VORRAT = __VORRAT__;
 
 self.addEventListener('install', (e) => {
   // Beim ersten Besuch gleich ablegen — sonst steht offline nichts bereit.
@@ -70,6 +85,14 @@ self.addEventListener('fetch', (e) => {
 """.strip()
 
 
+def service_worker() -> str:
+    """Der Vorrat nennt die Symbole mit Prüfsumme — genau so fragen die Seiten
+    sie an; unter dem bloßen Dateinamen fände der Service Worker sie offline nicht."""
+    symbole = ["icon-192.png", "icon-512.png", "apple-touch-icon.png", "favicon-32.png"]
+    vorrat = ["./index.html", "./manifest.webmanifest"] + [f"./{adresse(n)}" for n in symbole]
+    return _SW_VORLAGE.replace("__VORRAT__", json.dumps(vorrat))
+
+
 def manifest(titel: str) -> str:
     return json.dumps(
         {
@@ -84,10 +107,10 @@ def manifest(titel: str) -> str:
             "background_color": "#f5f5f7",
             "theme_color": "#f5f5f7",
             "icons": [
-                {"src": "icon-192.png", "sizes": "192x192", "type": "image/png"},
-                {"src": "icon-512.png", "sizes": "512x512", "type": "image/png"},
+                {"src": adresse("icon-192.png"), "sizes": "192x192", "type": "image/png"},
+                {"src": adresse("icon-512.png"), "sizes": "512x512", "type": "image/png"},
                 {
-                    "src": "icon-maskable-512.png",
+                    "src": adresse("icon-maskable-512.png"),
                     "sizes": "512x512",
                     "type": "image/png",
                     "purpose": "maskable",
@@ -99,14 +122,18 @@ def manifest(titel: str) -> str:
     )
 
 
-def kopfzeilen() -> str:
-    """Meta-Tags, damit iOS und Android die Seite als App behandeln."""
-    return """
-<link rel="manifest" href="manifest.webmanifest">
+def kopfzeilen(wurzel: str = "") -> str:
+    """Meta-Tags, damit iOS und Android die Seite als App behandeln.
+
+    ``wurzel`` ist der Weg zur Website-Wurzel: leer für index.html, "../" für
+    die Ausgaben im Ordner archiv/.
+    """
+    return f"""
+<link rel="manifest" href="{wurzel}manifest.webmanifest">
 <meta name="theme-color" media="(prefers-color-scheme: light)" content="#f5f5f7">
 <meta name="theme-color" media="(prefers-color-scheme: dark)" content="#000000">
-<link rel="icon" href="favicon-32.png" sizes="32x32" type="image/png">
-<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<link rel="icon" href="{wurzel}{adresse('favicon-32.png')}" sizes="32x32" type="image/png">
+<link rel="apple-touch-icon" href="{wurzel}{adresse('apple-touch-icon.png')}">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-title" content="Briefing">
@@ -124,11 +151,11 @@ def leisten_symbol() -> str:
     return "data:image/jpeg;base64," + base64.b64encode(datei.read_bytes()).decode("ascii")
 
 
-def registrierung() -> str:
+def registrierung(wurzel: str = "") -> str:
     """Service Worker registrieren — scheitert still, wenn er fehlt (z. B. lokal)."""
     return (
         "if ('serviceWorker' in navigator) { window.addEventListener('load', function () "
-        "{ navigator.serviceWorker.register('sw.js').catch(function () {}); }); }"
+        "{ navigator.serviceWorker.register('" + wurzel + "sw.js').catch(function () {}); }); }"
     )
 
 
@@ -140,7 +167,7 @@ def schreibe_dateien(ziel: Path, titel: str) -> list[str]:
     (ziel / "manifest.webmanifest").write_text(manifest(titel), encoding="utf-8")
     geschrieben.append("manifest.webmanifest")
 
-    (ziel / "sw.js").write_text(SERVICE_WORKER + "\n", encoding="utf-8")
+    (ziel / "sw.js").write_text(service_worker() + "\n", encoding="utf-8")
     geschrieben.append("sw.js")
 
     for name in SYMBOLE:

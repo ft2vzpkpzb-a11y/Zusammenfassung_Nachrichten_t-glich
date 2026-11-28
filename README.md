@@ -49,6 +49,11 @@ iPhone (Safari): *Teilen* → *Zum Home-Bildschirm*;
 Android (Chrome): *⋮* → *Zum Startbildschirm hinzufügen*.
 Danach startet das Briefing wie eine App ohne Browserleiste, mit eigenem Symbol.
 
+**Neues Symbol übernehmen:** In Safari-Tabs genügt einmal Neuladen — jede
+Symbolversion hat eine eigene Adresse (`favicon-32.png?v=…`), deshalb holt
+Safari sie frisch. Ein schon abgelegtes Home-Bildschirm-Symbol tauscht iOS
+nicht aus: entfernen und neu hinzufügen.
+
 Was am Handy sonst noch anders ist:
 
 - **Offline lesbar** — ein Service Worker legt die zuletzt geladene Ausgabe ab.
