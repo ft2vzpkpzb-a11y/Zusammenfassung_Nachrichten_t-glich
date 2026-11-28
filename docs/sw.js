@@ -1,7 +1,7 @@
-const CACHE = 'briefing-v2';
+const CACHE = 'briefing-v3';
 const VORRAT = [
   './index.html', './manifest.webmanifest',
-  './icon-192.png', './icon-512.png', './apple-touch-icon.png'
+  './icon-192.png', './icon-512.png', './apple-touch-icon.png', './favicon-32.png'
 ];
 
 self.addEventListener('install', (e) => {
