@@ -1,8 +1,5 @@
-const CACHE = 'briefing-v3';
-const VORRAT = [
-  './index.html', './manifest.webmanifest',
-  './icon-192.png', './icon-512.png', './apple-touch-icon.png', './favicon-32.png'
-];
+const CACHE = 'briefing-v4';
+const VORRAT = ["./index.html", "./manifest.webmanifest", "./icon-192.png?v=3bb2c137", "./icon-512.png?v=a5e17f67", "./apple-touch-icon.png?v=b8a400f6", "./favicon-32.png?v=87ee20b2"];
 
 self.addEventListener('install', (e) => {
   // Beim ersten Besuch gleich ablegen — sonst steht offline nichts bereit.
