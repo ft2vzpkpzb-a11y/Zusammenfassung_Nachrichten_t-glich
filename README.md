@@ -398,7 +398,7 @@ briefing/render.py       HTML, CSS und JavaScript des Briefings
 briefing/pwa.py          Manifest, Service Worker, App-Symbole fürs Handy
 briefing/demo.py         Beispieldaten für --demo
 config/feeds.json        Quellen und Einstellungen
-assets/                  App-Symbole (Quelle: icon.svg)
+assets/                  App-Symbole: mit Higgsfield (GPT Image 2.6) erzeugt, alle Größen aus einer Vorlage
 briefing/zeitplan.py     Ist eine neue Ausgabe fällig? (für den stündlichen Workflow)
 docs/                    Wird vom Workflow erzeugt: Website, Archiv, stand.txt
 .github/workflows/       Briefing (stündlich, baut zu den Terminen), Feed-Prüfung, Vorschau
